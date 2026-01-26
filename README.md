@@ -111,7 +111,7 @@ File format: `m-n-k-j-s-x-y`
 - [Deployment guide](./docs/vercel-deployment-guide.md)
 - [Design style](./docs/bentossell-style.md)
 - [Color palette](./docs/color-palette.md)
-- [Project spec](./Group%20Project%20说明.md)
+- [Project spec](./docs/project-spec/Group%20Project%20说明.md)
 
 ## Tech
 
