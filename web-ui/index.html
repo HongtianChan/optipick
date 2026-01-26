@@ -1299,29 +1299,46 @@
       // 创建打印内容
       const printContent = document.createElement('div');
       printContent.className = 'print-section';
+      // 解析文件名（如果存在）
+      let fileInfo = '';
+      if (filename) {
+        const parts = filename.split('-');
+        if (parts.length === 7) {
+          fileInfo = `Run #${parts[5]}, Total Groups: ${parts[6]}`;
+        }
+      }
+      
       printContent.innerHTML = `
         <div class="print-title">An Optimal Samples Selection System - Results</div>
         
-        <div class="print-param"><strong>Parameters:</strong></div>
-        <div class="print-param">m = ${m}, n = ${n}, k = ${k}, j = ${j}, s = ${s}, at least = ${atLeast}</div>
+        <div class="print-param"><strong>Input Parameters:</strong></div>
+        <div class="print-param">m = ${m} (total samples), n = ${n} (selected), k = ${k} (group size), j = ${j}, s = ${s}, at least = ${atLeast}</div>
         
         <div class="print-samples">
-          <strong>Selected Samples (n = ${n}):</strong><br>
+          <strong>Selected Samples (n = ${n} from m = ${m}):</strong><br>
           ${currentResult.samples.map((v, idx) => `${idx + 1}st # ${v}`).join('<br>')}
         </div>
         
         <div class="print-results">
-          <strong>Results:</strong><br>
-          Algorithm: ${currentResult.method === 'backtrack' ? 'Backtrack (Exact)' : 'Greedy (Approximate)'}<br>
-          Minimum Groups: ${currentResult.count}<br><br>
-          <strong>Groups:</strong><br>
+          <strong>Calculation Results:</strong><br>
+          Algorithm: ${currentResult.method === 'backtrack' ? 'Backtrack (Exact Solution)' : 'Greedy (Approximate Solution)'}<br>
+          Minimum Groups Required: ${currentResult.count}<br>
+          Total Groups Generated: ${currentResult.groups.length}<br><br>
+          <strong>Optimal Groups (k = ${k}):</strong><br>
           ${currentResult.groups.map((group, idx) => `${idx + 1}. [${group.join(', ')}]`).join('<br>')}
         </div>
         
-        ${filename ? `<div class="print-filename">File: ${filename}</div>` : ''}
+        ${filename ? `
+          <div class="print-filename">
+            <strong>File Information:</strong><br>
+            Filename: ${filename}<br>
+            ${fileInfo ? `(${fileInfo})` : ''}
+          </div>
+        ` : ''}
         
-        <div class="print-filename" style="margin-top: 20px;">
-          Generated at: ${new Date().toLocaleString()}
+        <div class="print-filename" style="margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px;">
+          Generated at: ${new Date().toLocaleString()}<br>
+          System: Optimal Samples Selection System
         </div>
       `;
       
@@ -1521,35 +1538,51 @@
         }
       });
       
+      // 解析文件名信息
+      let fileInfo = '';
+      if (dbFilename) {
+        const parts = dbFilename.split('-');
+        if (parts.length === 7) {
+          fileInfo = `Run #${parts[5]}, Total Groups: ${parts[6]}`;
+        }
+      }
+      
       // 创建打印内容
       const printContent = document.createElement('div');
       printContent.className = 'print-section';
       printContent.innerHTML = `
         <div class="print-title">An Optimal Samples Selection System - Database Results</div>
         
-        ${dbFilename ? `<div class="print-filename" style="margin-bottom: 15px;"><strong>File:</strong> ${dbFilename}</div>` : ''}
+        ${dbFilename ? `
+          <div class="print-filename" style="margin-bottom: 15px;">
+            <strong>File Information:</strong><br>
+            Filename: ${dbFilename}<br>
+            ${fileInfo ? `(${fileInfo})` : ''}
+          </div>
+        ` : ''}
         
         ${Object.keys(params).length > 0 ? `
-          <div class="print-param"><strong>Parameters:</strong></div>
-          <div class="print-param">m = ${params.m}, n = ${params.n}, k = ${params.k}, j = ${params.j}, s = ${params.s}</div>
+          <div class="print-param"><strong>Input Parameters:</strong></div>
+          <div class="print-param">m = ${params.m} (total samples), n = ${params.n} (selected), k = ${params.k} (group size), j = ${params.j}, s = ${params.s}</div>
         ` : ''}
         
         ${samples.length > 0 ? `
           <div class="print-samples">
-            <strong>Selected Samples (n = ${samples.length}):</strong><br>
+            <strong>Selected Samples (n = ${samples.length} from m = ${params.m || 'N/A'}):</strong><br>
             ${samples.map((v, idx) => `${idx + 1}st # ${v}`).join('<br>')}
           </div>
         ` : ''}
         
         <div class="print-results">
-          <strong>Results:</strong><br>
+          <strong>Calculation Results:</strong><br>
           Total Groups: ${count}<br><br>
-          <strong>Groups:</strong><br>
+          <strong>Optimal Groups (k = ${params.k || 'N/A'}):</strong><br>
           ${groups.map((group, idx) => `${idx + 1}. [${group.join(', ')}]`).join('<br>')}
         </div>
         
-        <div class="print-filename" style="margin-top: 20px;">
-          Generated at: ${new Date().toLocaleString()}
+        <div class="print-filename" style="margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px;">
+          Generated at: ${new Date().toLocaleString()}<br>
+          System: Optimal Samples Selection System
         </div>
       `;
       
