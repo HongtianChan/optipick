@@ -1207,7 +1207,7 @@
           groupsText;
         
         document.getElementById('filename').textContent = '';
-        addTerminalOutput(`solution found: ${result.count} groups`, 'output');
+        addTerminalOutput(`solution found: ${result.count} groups (using ${result.calculationTime || 'N/A'} second)`, 'output');
       } catch (error) {
         const errorMsg = error.message || 'Network error';
         showError('计算失败: ' + errorMsg);
@@ -1340,7 +1340,6 @@
         <div class="print-results">
           <strong>Calculation Results:</strong><br>
           Algorithm: ${currentResult.method === 'backtrack' ? 'Backtrack (Exact Solution)' : 'Greedy (Approximate Solution)'}<br>
-          Calculation Time: ${currentResult.calculationTime || 'N/A'} seconds<br>
           Minimum Groups Required: ${currentResult.count}<br>
           Total Groups Generated: ${currentResult.groups.length}<br><br>
           <strong>Optimal Groups (k = ${k}):</strong><br>
