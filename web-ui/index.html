@@ -1121,8 +1121,11 @@
         document.getElementById('filename').textContent = '';
         addTerminalOutput(`solution found: ${result.count} groups`, 'output');
       } catch (error) {
-        showError('计算失败: ' + error.message);
-        addTerminalOutput(`Error: ${error.message}`, 'error');
+        const errorMsg = error.message || 'Network error';
+        showError('计算失败: ' + errorMsg);
+        addTerminalOutput(`Error: ${errorMsg}`, 'error');
+        addTerminalOutput('Tip: Make sure the API server is running', 'info');
+        console.error('API Error:', error);
       }
     }
     
