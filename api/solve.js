@@ -59,15 +59,28 @@ module.exports = async (req, res) => {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     const { m, n, k, j, s, atLeast = 1, samples, save } = body;
     
+    // 参数验证
+    if (!m || !n || !k || !j || !s) {
+      return res.status(400).json({ error: 'Missing required parameters: m, n, k, j, s' });
+    }
+    
+    if (j < s || j > k) {
+      return res.status(400).json({ error: `j must be between ${s} and ${k}` });
+    }
+    
     const result = solveOptimalSamples(m, n, k, j, s, atLeast, samples);
     
     let fileName = null;
     if (save) {
+      if (!supabase) {
+        return res.status(500).json({ error: 'Supabase not configured. Please check environment variables.' });
+      }
       fileName = await saveResult(m, n, k, j, s, result.samples, result.groups);
     }
     
     res.status(200).json({ ...result, fileName });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error('API Error:', error);
+    res.status(400).json({ error: error.message || 'Unknown error' });
   }
 };
