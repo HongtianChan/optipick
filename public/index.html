@@ -1171,6 +1171,8 @@
       document.getElementById('results').value = 'calculating...';
       addTerminalOutput(`solving: m=${m}, n=${n}, k=${k}, j=${j}, s=${s}`, 'info');
       
+      const startTime = performance.now();
+      
       try {
         const response = await fetch(`${API_BASE}/api/solve`, {
           method: 'POST',
@@ -1185,6 +1187,10 @@
           addTerminalOutput(`Error: ${result.error}`, 'error');
           return;
         }
+        
+        const endTime = performance.now();
+        const calculationTime = ((endTime - startTime) / 1000).toFixed(3);
+        result.calculationTime = calculationTime;
         
         currentResult = result;
         
@@ -1308,11 +1314,23 @@
         }
       }
       
+      // 生成条件说明
+      let conditionDesc = '';
+      if (j === s) {
+        conditionDesc = `Each j=${j} combination requires ALL s=${s} combinations to be covered`;
+      } else {
+        conditionDesc = `Each j=${j} combination requires at least ${atLeast} s=${s} combination(s) to be covered`;
+      }
+      
       printContent.innerHTML = `
         <div class="print-title">An Optimal Samples Selection System - Results</div>
         
         <div class="print-param"><strong>Input Parameters:</strong></div>
         <div class="print-param">m = ${m} (total samples), n = ${n} (selected), k = ${k} (group size), j = ${j}, s = ${s}, at least = ${atLeast}</div>
+        
+        <div class="print-param" style="margin-top: 10px; padding: 10px; background: #f0f0f0; border-left: 3px solid #58a6ff;">
+          <strong>Condition:</strong> ${conditionDesc}
+        </div>
         
         <div class="print-samples">
           <strong>Selected Samples (n = ${n} from m = ${m}):</strong><br>
@@ -1322,6 +1340,7 @@
         <div class="print-results">
           <strong>Calculation Results:</strong><br>
           Algorithm: ${currentResult.method === 'backtrack' ? 'Backtrack (Exact Solution)' : 'Greedy (Approximate Solution)'}<br>
+          Calculation Time: ${currentResult.calculationTime || 'N/A'} seconds<br>
           Minimum Groups Required: ${currentResult.count}<br>
           Total Groups Generated: ${currentResult.groups.length}<br><br>
           <strong>Optimal Groups (k = ${k}):</strong><br>
@@ -1547,6 +1566,18 @@
         }
       }
       
+      // 生成条件说明
+      let conditionDesc = '';
+      if (Object.keys(params).length > 0) {
+        const j = parseInt(params.j);
+        const s = parseInt(params.s);
+        if (j === s) {
+          conditionDesc = `Each j=${j} combination requires ALL s=${s} combinations to be covered`;
+        } else {
+          conditionDesc = `Each j=${j} combination requires at least ONE s=${s} combination to be covered`;
+        }
+      }
+      
       // 创建打印内容
       const printContent = document.createElement('div');
       printContent.className = 'print-section';
@@ -1564,6 +1595,12 @@
         ${Object.keys(params).length > 0 ? `
           <div class="print-param"><strong>Input Parameters:</strong></div>
           <div class="print-param">m = ${params.m} (total samples), n = ${params.n} (selected), k = ${params.k} (group size), j = ${params.j}, s = ${params.s}</div>
+        ` : ''}
+        
+        ${conditionDesc ? `
+          <div class="print-param" style="margin-top: 10px; padding: 10px; background: #f0f0f0; border-left: 3px solid #58a6ff;">
+            <strong>Condition:</strong> ${conditionDesc}
+          </div>
         ` : ''}
         
         ${samples.length > 0 ? `
