@@ -1281,9 +1281,60 @@
       hideError();
     }
     
-    // 打印
+    // 打印结果
     function printResults() {
+      if (!currentResult) {
+        addTerminalOutput('Error: no result to print', 'error');
+        return;
+      }
+      
+      const m = parseInt(document.getElementById('param-m').value);
+      const n = parseInt(document.getElementById('param-n').value);
+      const k = parseInt(document.getElementById('param-k').value);
+      const j = parseInt(document.getElementById('param-j').value);
+      const s = parseInt(document.getElementById('param-s').value);
+      const atLeast = parseInt(document.getElementById('param-atleast').value) || 1;
+      const filename = document.getElementById('filename').textContent;
+      
+      // 创建打印内容
+      const printContent = document.createElement('div');
+      printContent.className = 'print-section';
+      printContent.innerHTML = `
+        <div class="print-title">An Optimal Samples Selection System - Results</div>
+        
+        <div class="print-param"><strong>Parameters:</strong></div>
+        <div class="print-param">m = ${m}, n = ${n}, k = ${k}, j = ${j}, s = ${s}, at least = ${atLeast}</div>
+        
+        <div class="print-samples">
+          <strong>Selected Samples (n = ${n}):</strong><br>
+          ${currentResult.samples.map((v, idx) => `${idx + 1}st # ${v}`).join('<br>')}
+        </div>
+        
+        <div class="print-results">
+          <strong>Results:</strong><br>
+          Algorithm: ${currentResult.method === 'backtrack' ? 'Backtrack (Exact)' : 'Greedy (Approximate)'}<br>
+          Minimum Groups: ${currentResult.count}<br><br>
+          <strong>Groups:</strong><br>
+          ${currentResult.groups.map((group, idx) => `${idx + 1}. [${group.join(', ')}]`).join('<br>')}
+        </div>
+        
+        ${filename ? `<div class="print-filename">File: ${filename}</div>` : ''}
+        
+        <div class="print-filename" style="margin-top: 20px;">
+          Generated at: ${new Date().toLocaleString()}
+        </div>
+      `;
+      
+      // 临时添加到页面
+      document.body.appendChild(printContent);
+      
+      // 打印
       window.print();
+      
+      // 打印后移除
+      setTimeout(() => {
+        document.body.removeChild(printContent);
+      }, 100);
     }
     
     // 切换标签页
