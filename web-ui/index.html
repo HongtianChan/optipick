@@ -560,26 +560,57 @@
       padding: 10px;
       margin-bottom: 15px;
       background: #0d1117;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
     }
     
     .file-item {
-      padding: 8px;
+      padding: 10px 12px;
       cursor: pointer;
-      border-radius: 4px;
-      margin-bottom: 5px;
+      border-radius: 6px;
       color: #8b949e;
       font-size: 13px;
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
+      border: 1px solid transparent;
+      background: #0d1117;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+    
+    .file-item::before {
+      content: '•';
+      margin-right: 8px;
+      color: #6e7681;
+      font-weight: bold;
     }
     
     .file-item:hover {
       background: #21262d;
       color: #c9d1d9;
+      border-color: #30363d;
     }
     
     .file-item.selected {
-      background: #1c2128;
+      background: #1c3a5e;
       color: #58a6ff;
-      border: 1px solid #30363d;
+      border: 1px solid #58a6ff;
+      box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.1);
+      font-weight: 500;
+    }
+    
+    .file-item.selected::before {
+      color: #58a6ff;
+    }
+    
+    .file-item.selected::after {
+      content: '✓';
+      position: absolute;
+      right: 12px;
+      color: #58a6ff;
+      font-weight: bold;
     }
     
     .status-bar {
@@ -782,6 +813,9 @@
             <div>
               <div class="section-title" style="margin-bottom: 10px;">File List</div>
               <div id="file-list" class="file-list"></div>
+              <div style="font-size: 11px; color: #6e7681; margin-top: 8px; text-align: center;">
+                click to select
+              </div>
               <div class="buttons">
                 <button class="btn-primary" onclick="displayFile()">Display</button>
                 <button class="btn-danger" onclick="deleteFile()">Delete</button>
@@ -1172,7 +1206,7 @@
         data.files.forEach(file => {
           const div = document.createElement('div');
           div.className = 'file-item';
-          div.textContent = '• ' + file;
+          div.textContent = file;
           div.onclick = () => {
             document.querySelectorAll('.file-item').forEach(item => item.classList.remove('selected'));
             div.classList.add('selected');
