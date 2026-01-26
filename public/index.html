@@ -760,35 +760,50 @@
         </div>
         
         <div class="section">
-          <div class="section-title">Mode</div>
+          <div class="section-title">Sample Selection Mode</div>
+          <div style="font-size: 11px; color: #6e7681; margin-bottom: 10px;">
+            Choose how to select n numbers from m:
+          </div>
           <div class="mode-selector">
             <label>
-              <input type="radio" name="mode" value="random" checked>
-              Random n
+              <input type="radio" name="mode" value="random" checked onchange="toggleInputMode()">
+              <span style="font-weight: 500;">Random n</span> - System randomly selects n numbers
             </label>
             <label>
-              <input type="radio" name="mode" value="input">
-              Input n
+              <input type="radio" name="mode" value="input" onchange="toggleInputMode()">
+              <span style="font-weight: 500;">Input n</span> - You manually enter n numbers
             </label>
           </div>
         </div>
         
         <div class="section">
+          <div class="section-title" style="margin-bottom: 10px;">Actions</div>
           <div class="buttons">
             <button class="btn-primary" onclick="execute()">execute</button>
             <button onclick="store()">store</button>
             <button onclick="clearAll()">clear</button>
           </div>
+          <div style="font-size: 11px; color: #6e7681; margin-top: 10px;">
+            <strong>execute</strong> - Calculate optimal groups | 
+            <strong>store</strong> - Save results to database | 
+            <strong>clear</strong> - Clear all inputs
+          </div>
         </div>
         
-        <div class="section">
-          <div class="section-title">Values input</div>
-          <textarea id="values-input" class="text-area" readonly></textarea>
-        </div>
-        
-        <div class="section">
-          <div class="section-title">User input</div>
+        <div class="section" id="user-input-section" style="display: none;">
+          <div class="section-title">Manual Input</div>
+          <div style="font-size: 11px; color: #6e7681; margin-bottom: 8px;">
+            Enter n numbers (1-54) in the boxes below, then click 'execute'
+          </div>
           <div id="user-input-grid" class="user-input-grid"></div>
+        </div>
+        
+        <div class="section">
+          <div class="section-title">Selected Samples</div>
+          <div style="font-size: 11px; color: #6e7681; margin-bottom: 8px;">
+            The n numbers that will be used for calculation (shown after clicking 'execute')
+          </div>
+          <textarea id="values-input" class="text-area" readonly placeholder="Selected numbers will appear here after clicking 'execute'..."></textarea>
         </div>
         
         <div class="section">
@@ -999,6 +1014,22 @@
     
     initUserInputs();
     document.getElementById('param-n').addEventListener('input', initUserInputs);
+    
+    // 切换输入模式
+    function toggleInputMode() {
+      const mode = document.querySelector('input[name="mode"]:checked').value;
+      const userInputSection = document.getElementById('user-input-section');
+      if (mode === 'input') {
+        userInputSection.style.display = 'block';
+      } else {
+        userInputSection.style.display = 'none';
+        // 清空用户输入
+        document.querySelectorAll('#user-input-grid input').forEach(input => {
+          input.value = '';
+        });
+      }
+      updateValuesInput();
+    }
     
     // 更新 Values input
     function updateValuesInput() {
