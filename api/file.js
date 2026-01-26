@@ -55,8 +55,12 @@ module.exports = async (req, res) => {
   
   if (req.method === 'GET') {
     try {
-      const urlObj = new URL(req.url, `http://${req.headers.host}`);
-      const fileName = urlObj.searchParams.get('f');
+      const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+      const fileName = url.searchParams.get('f');
+      if (!fileName) {
+        res.status(400).json({ error: 'Missing file parameter' });
+        return;
+      }
       const data = await readDbFile(fileName);
       res.status(200).json(data);
     } catch (error) {
