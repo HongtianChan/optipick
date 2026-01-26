@@ -1,0 +1,11 @@
+{
+  "name": "optipick",
+  "version": "1.0.0",
+  "description": "Optimal Samples Selector - 最优样本选择系统",
+  "scripts": {
+    "build": "echo 'No build step required'"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.91.1"
+  }
+}
