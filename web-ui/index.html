@@ -22,6 +22,28 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      position: relative;
+      overflow-x: hidden;
+    }
+    
+    /* 8bit 粒子效果 */
+    .particle {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      image-rendering: pixelated;
+      image-rendering: -moz-crisp-edges;
+      image-rendering: crisp-edges;
+    }
+    
+    .particle-8bit {
+      width: 6px;
+      height: 6px;
+      border-radius: 0;
+      box-shadow: 
+        0 0 1px currentColor,
+        1px 1px 0 currentColor;
+      transform: translate(-50%, -50%);
     }
     
     .terminal-window {
@@ -32,6 +54,18 @@
       border-radius: 8px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
       overflow: hidden;
+      animation: fadeInUp 0.5s ease-out;
+    }
+    
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
     
     .title-bar {
@@ -82,6 +116,8 @@
       min-height: 500px;
       max-height: 80vh;
       overflow-y: auto;
+      width: 100%;
+      box-sizing: border-box;
     }
     
     .terminal-output {
@@ -151,12 +187,27 @@
     .command-prompt {
       display: flex;
       align-items: center;
-      margin-top: 20px;
+      margin-top: 12px;
+      margin-bottom: 20px;
+      padding: 8px 12px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      width: 100%;
+    }
+    
+    .command-prompt:focus-within {
+      border-color: #58a6ff;
+      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
     }
     
     .prompt-symbol {
       color: #58a6ff;
-      margin-right: 8px;
+      margin-right: 10px;
+      font-weight: bold;
+      user-select: none;
+      flex-shrink: 0;
     }
     
     .command-input {
@@ -167,6 +218,8 @@
       font-family: 'JetBrains Mono', 'Courier New', monospace;
       font-size: 14px;
       outline: none;
+      width: 100%;
+      padding: 0;
     }
     
     .command-input::placeholder {
@@ -175,56 +228,105 @@
     
     .section {
       margin: 20px 0;
-      padding: 15px;
+      padding: 20px;
       background: #0d1117;
       border: 1px solid #21262d;
-      border-radius: 4px;
+      border-radius: 6px;
+      transition: all 0.3s ease;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    
+    .section:hover {
+      border-color: #30363d;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     }
     
     .section-title {
       color: #58a6ff;
       margin-bottom: 10px;
-      font-size: 14px;
+      font-size: 18px;
+      font-weight: bold;
       text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     
     .params-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 15px;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
       margin-bottom: 15px;
+    }
+    
+    /* 平板适配 */
+    @media (max-width: 1024px) {
+      .params-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+    }
+    
+    /* 移动端适配 */
+    @media (max-width: 768px) {
+      .params-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .params-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+      }
     }
     
     .param-group {
       display: flex;
       flex-direction: column;
+      min-width: 0; /* 防止内容溢出 */
     }
     
     .param-group label {
       color: #8b949e;
-      font-size: 12px;
-      margin-bottom: 5px;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 4px;
+      white-space: nowrap;
     }
     
     .param-group input {
       background: #0d1117;
       border: 1px solid #30363d;
       color: #c9d1d9;
-      padding: 8px;
+      padding: 8px 10px;
       border-radius: 4px;
       font-family: 'JetBrains Mono', 'Courier New', monospace;
-      font-size: 13px;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      width: 100%;
     }
     
     .param-group input:focus {
       outline: none;
       border-color: #58a6ff;
+      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+      background: #161b22;
+    }
+    
+    .param-group input:hover {
+      border-color: #484f58;
+      background: #161b22;
     }
     
     .param-group .hint {
       color: #6e7681;
       font-size: 11px;
       margin-top: 3px;
+      font-weight: 400;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     
     .mode-selector {
@@ -239,7 +341,16 @@
       gap: 8px;
       cursor: pointer;
       color: #c9d1d9;
-      font-size: 13px;
+      font-size: 14px;
+      font-weight: 400;
+      padding: 6px 12px;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+    
+    .mode-selector label:hover {
+      background: #21262d;
+      color: #58a6ff;
     }
     
     .mode-selector input[type="radio"] {
@@ -257,18 +368,50 @@
       background: #21262d;
       border: 1px solid #30363d;
       color: #c9d1d9;
-      padding: 8px 16px;
+      padding: 10px 20px;
       border-radius: 4px;
       cursor: pointer;
       font-family: 'JetBrains Mono', 'Courier New', monospace;
-      font-size: 13px;
-      transition: all 0.2s;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: visible;
+    }
+    
+    /* 点击反馈效果 - 虚线放射 */
+    button::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border: 2px dashed rgba(88, 166, 255, 0.6);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    button:active::after {
+      width: 200px;
+      height: 200px;
+      opacity: 1;
+      transition: width 0.4s ease-out, height 0.4s ease-out, opacity 0.4s ease-out;
     }
     
     button:hover {
       background: #30363d;
       border-color: #58a6ff;
       color: #58a6ff;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(88, 166, 255, 0.25);
+    }
+    
+    button:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(88, 166, 255, 0.3);
     }
     
     .btn-primary {
@@ -298,12 +441,17 @@
       background: #0d1117;
       border: 1px solid #30363d;
       color: #7ee787;
-      padding: 10px;
+      padding: 12px;
       border-radius: 4px;
       font-family: 'JetBrains Mono', 'Courier New', monospace;
-      font-size: 12px;
+      font-size: 14px;
       resize: vertical;
       line-height: 1.6;
+      transition: all 0.2s ease;
+    }
+    
+    .text-area:hover {
+      border-color: #484f58;
     }
     
     .text-area:focus {
@@ -368,30 +516,40 @@
     
     .tabs {
       display: flex;
-      gap: 0;
+      gap: 10px;
+      margin-top: 15px;
       margin-bottom: 20px;
-      border-bottom: 1px solid #30363d;
     }
     
     .tab {
-      padding: 10px 20px;
+      padding: 8px 24px;
       cursor: pointer;
-      border: none;
-      background: none;
+      border: 1px solid #30363d;
+      background: #21262d;
       color: #8b949e;
       font-family: 'JetBrains Mono', 'Courier New', monospace;
-      font-size: 13px;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -1px;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      flex: 0 0 auto;
     }
     
     .tab:hover {
+      background: #30363d;
+      border-color: #484f58;
       color: #c9d1d9;
     }
     
     .tab.active {
-      color: #58a6ff;
-      border-bottom-color: #58a6ff;
+      background: #58a6ff;
+      border-color: #58a6ff;
+      color: #ffffff;
+    }
+    
+    .tab.active:hover {
+      background: #6ab3ff;
+      border-color: #6ab3ff;
     }
     
     .file-list {
@@ -484,50 +642,53 @@
     
     <div class="terminal-content">
       <div class="terminal-output" id="terminal-output">
-        <div class="terminal-line output">initializing optimal samples selector...</div>
-        <div class="terminal-line output">loading algorithm modules... done</div>
-        <div class="terminal-line output">connecting to solver... connected</div>
+        <div class="terminal-line output">> system ready...</div>
         <div class="ascii-art" id="ascii-title">
-╔═══════════════════════════════════════════════════════════════════════════════╗
-║                                                                               ║
-║     █████╗ ███╗   ██╗    ██████╗ ██████╗ ████████╗██╗███╗   ███╗ █████╗ ██╗     ║
-║    ██╔══██╗████╗  ██║   ██╔═══██╗██╔══██╗╚══██╔══╝██║████╗ ████║██╔══██╗██║     ║
-║    ███████║██╔██╗ ██║   ██║   ██║██████╔╝   ██║   ██║██╔████╔██║███████║██║     ║
-║    ██╔══██║██║╚██╗██║   ██║   ██║██╔═══╝    ██║   ██║██║╚██╔╝██║██╔══██║██║     ║
-║    ██║  ██║██║ ╚████║   ╚██████╔╝██║        ██║   ██║██║ ╚═╝ ██║██║  ██║███████╗║
-║    ╚═╝  ╚═╝╚═╝  ╚═══╝    ╚═════╝ ╚═╝        ╚═╝   ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝╚══════╝║
-║                                                                               ║
-║     ███████╗ █████╗ ███╗   ███╗██████╗ ██╗     ███████╗██████╗                ║
-║     ██╔════╝██╔══██╗████╗ ████║██╔══██╗██║     ██╔════╝██╔══██╗               ║
-║     ███████╗███████║██╔████╔██║██████╔╝██║     █████╗  ██████╔╝                ║
-║     ╚════██║██╔══██║██║╚██╔╝██║██╔═══╝ ██║     ██╔══╝  ██╔══██╗               ║
-║     ███████║██║  ██║██║ ╚═╝ ██║██║     ███████╗███████╗██████╔╝               ║
-║     ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝     ╚══════╝╚══════╝╚═════╝                ║
-║                                                                               ║
-║     ███████╗███████╗██╗     ███████╗ ██████╗████████╗██╗ ██████╗ ███╗   ██╗      ║
-║     ██╔════╝██╔════╝██║     ██╔════╝██╔════╝╚══██╔══╝██║██╔═══██╗████╗  ██║      ║
-║     ███████╗███████╗██║     █████╗  ██║        ██║   ██║██║   ██║██╔██╗ ██║      ║
-║     ╚════██║╚════██║██║     ██╔══╝  ██║        ██║   ██║██║   ██║██║╚██╗██║      ║
-║     ███████║███████║███████╗███████╗╚██████╗   ██║   ██║╚██████╔╝██║ ╚████║      ║
-║     ╚══════╝╚══════╝╚══════╝╚══════╝ ╚═════╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝      ║
-║                                                                               ║
-║     ███████╗██╗   ██╗███████╗████████╗███████╗███╗   ███╗                     ║
-║     ██╔════╝╚██╗ ██╔╝██╔════╝╚══██╔══╝██╔════╝████╗ ████║                     ║
-║     ███████╗ ╚████╔╝ ███████╗   ██║   ███████╗██╔████╔██║                     ║
-║     ╚════██║  ╚██╔╝  ╚════██║   ██║   ╚════██║██║╚██╔╝██║                     ║
-║     ███████║   ██║   ███████║   ██║   ███████║██║ ╚═╝ ██║                     ║
-║     ╚══════╝   ╚═╝   ╚══════╝   ╚═╝   ╚══════╝╚═╝     ╚═╝                     ║
-║                                                                               ║
-╚═══════════════════════════════════════════════════════════════════════════════╝
+╔═════════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                     ║
+║     █████╗ ███╗   ██╗    ██████╗ ██████╗ ████████╗██╗███╗   ███╗ █████╗ ██╗         ║
+║    ██╔══██╗████╗  ██║   ██╔═══██╗██╔══██╗╚══██╔══╝██║████╗ ████║██╔══██╗██║         ║
+║    ███████║██╔██╗ ██║   ██║   ██║██████╔╝   ██║   ██║██╔████╔██║███████║██║         ║
+║    ██╔══██║██║╚██╗██║   ██║   ██║██╔═══╝    ██║   ██║██║╚██╔╝██║██╔══██║██║         ║
+║    ██║  ██║██║ ╚████║   ╚██████╔╝██║        ██║   ██║██║ ╚═╝ ██║██║  ██║███████╗    ║
+║    ╚═╝  ╚═╝╚═╝  ╚═══╝    ╚═════╝ ╚═╝        ╚═╝   ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝╚══════╝    ║
+║                                                                                     ║
+║     ███████╗ █████╗ ███╗   ███╗██████╗ ██╗     ███████╗██████╗                      ║
+║     ██╔════╝██╔══██╗████╗ ████║██╔══██╗██║     ██╔════╝██╔══██╗                     ║
+║     ███████╗███████║██╔████╔██║██████╔╝██║     █████╗  ██████╔╝                     ║
+║     ╚════██║██╔══██║██║╚██╔╝██║██╔═══╝ ██║     ██╔══╝  ██╔══██╗                     ║
+║     ███████║██║  ██║██║ ╚═╝ ██║██║     ███████╗███████╗██████╔╝                     ║
+║     ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝     ╚══════╝╚══════╝╚═════╝                      ║
+║                                                                                     ║
+║     ███████╗███████╗██╗     ███████╗ ██████╗████████╗██╗ ██████╗ ███╗   ██╗         ║
+║     ██╔════╝██╔════╝██║     ██╔════╝██╔════╝╚══██╔══╝██║██╔═══██╗████╗  ██║         ║
+║     ███████╗███████╗██║     █████╗  ██║        ██║   ██║██║   ██║██╔██╗ ██║         ║
+║     ╚════██║╚════██║██║     ██╔══╝  ██║        ██║   ██║██║   ██║██║╚██╗██║         ║
+║     ███████║███████║███████╗███████╗╚██████╗   ██║   ██║╚██████╔╝██║ ╚████║         ║
+║     ╚══════╝╚══════╝╚══════╝╚══════╝ ╚═════╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝         ║
+║                                                                                     ║
+║     ███████╗██╗   ██╗███████╗████████╗███████╗███╗   ███╗                           ║
+║     ██╔════╝╚██╗ ██╔╝██╔════╝╚══██╔══╝██╔════╝████╗ ████║                           ║
+║     ███████╗ ╚████╔╝ ███████╗   ██║   ███████╗██╔████╔██║                           ║
+║     ╚════██║  ╚██╔╝  ╚════██║   ██║   ╚════██║██║╚██╔╝██║                           ║
+║     ███████║   ██║   ███████║   ██║   ███████║██║ ╚═╝ ██║                           ║
+║     ╚══════╝   ╚═╝   ╚══════╝   ╚═╝   ╚══════╝╚═╝     ╚═╝                           ║
+║                                                                                     ║
+╚═════════════════════════════════════════════════════════════════════════════════════╝
         </div>
         <div class="terminal-line prompt" style="margin-top: 15px; color: #58a6ff;">welcome to optimal samples selector cli.</div>
         <div class="terminal-line prompt" style="color: #8b949e;">type 'help' to see commands or use the interface below.</div>
+        
+        <div class="command-prompt">
+          <span class="prompt-symbol">></span>
+          <input type="text" class="command-input" id="command-input" placeholder="type a command... (try 'help')" autocomplete="off" spellcheck="false" onkeypress="handleCommand(event)">
+        </div>
+        
+        <div class="tabs">
+          <button class="tab active" onclick="showTab('main')">main</button>
+          <button class="tab" onclick="showTab('database')">database</button>
+        </div>
       </div>
-      
-      <div class="tabs">
-        <button class="tab active" onclick="showTab('main')">main</button>
-        <button class="tab" onclick="showTab('database')">database</button>
-      </button>
       
       <!-- 主界面 -->
       <div id="main-tab">
@@ -639,15 +800,10 @@
           </div>
         </div>
       </div>
-      
-      <div class="command-prompt">
-        <span class="prompt-symbol">></span>
-        <input type="text" class="command-input" id="command-input" placeholder="type a command..." onkeypress="handleCommand(event)">
-      </div>
     </div>
     
     <div class="status-bar">
-      <div class="status-left">solving set cover problems</div>
+      <div class="status-left">Optimal samples selector :)</div>
       <div class="status-right">
         <span>shift+tab to cycle themes</span>
         <span id="current-time"></span>
@@ -679,6 +835,10 @@
       output.scrollTop = output.scrollHeight;
     }
     
+    // 命令历史
+    let commandHistory = [];
+    let historyIndex = -1;
+    
     // 命令处理
     function handleCommand(event) {
       if (event.key === 'Enter') {
@@ -686,12 +846,51 @@
         const command = input.value.trim();
         
         if (command) {
+          // 保存到历史
+          if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== command) {
+            commandHistory.push(command);
+            if (commandHistory.length > 20) {
+              commandHistory.shift();
+            }
+          }
+          historyIndex = -1;
+          
           addTerminalOutput(`> ${command}`, 'prompt');
           executeCommand(command);
           input.value = '';
         }
       }
     }
+    
+    // 初始化命令输入框
+    document.addEventListener('DOMContentLoaded', () => {
+      const commandInput = document.getElementById('command-input');
+      if (commandInput) {
+        // 支持上下箭头浏览历史
+        commandInput.addEventListener('keydown', (e) => {
+          if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (commandHistory.length > 0) {
+              if (historyIndex > 0) {
+                historyIndex--;
+              } else if (historyIndex === -1) {
+                historyIndex = commandHistory.length - 1;
+              }
+              commandInput.value = commandHistory[historyIndex];
+            }
+          } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (historyIndex < commandHistory.length - 1) {
+              historyIndex++;
+              commandInput.value = commandHistory[historyIndex];
+            } else {
+              historyIndex = -1;
+              commandInput.value = '';
+            }
+          }
+        });
+      }
+    });
     
     // 执行命令
     function executeCommand(cmd) {
@@ -700,6 +899,9 @@
       
       switch(cmdName) {
         case 'help':
+          addTerminalOutput('Optimal Samples Selector - solve set cover problems', 'info');
+          addTerminalOutput('find the minimum sample groups that satisfy coverage conditions', 'info');
+          addTerminalOutput('');
           addTerminalOutput('Available commands:', 'info');
           addTerminalOutput('  solve - execute calculation', 'info');
           addTerminalOutput('  store - save current result', 'info');
@@ -1095,6 +1297,90 @@
     function hideError() {
       document.getElementById('error-message').classList.add('hidden');
     }
+    
+    // 8bit 点击烟花效果
+    function create8BitParticle(x, y, color, angle, velocity) {
+      const particle = document.createElement('div');
+      particle.className = 'particle particle-8bit';
+      particle.style.left = x + 'px';
+      particle.style.top = y + 'px';
+      particle.style.backgroundColor = color;
+      particle.style.color = color;
+      particle.style.opacity = '1';
+      
+      document.body.appendChild(particle);
+      
+      let vx = Math.cos(angle) * velocity;
+      let vy = Math.sin(angle) * velocity;
+      const gravity = 0.25;
+      let opacity = 1;
+      let currentX = x;
+      let currentY = y;
+      let frame = 0;
+      
+      const animate = () => {
+        frame++;
+        
+        // 更新位置
+        currentX += vx;
+        currentY += vy;
+        vy += gravity; // 重力加速
+        
+        // 应用位置（像素对齐，更8bit）
+        particle.style.left = Math.round(currentX) + 'px';
+        particle.style.top = Math.round(currentY) + 'px';
+        
+        // 淡出效果（延迟开始）
+        if (frame > 10) {
+          opacity -= 0.02;
+          particle.style.opacity = opacity;
+        }
+        
+        // 如果粒子超出视窗底部或完全透明，移除
+        if (currentY > window.innerHeight + 200 || opacity <= 0 || currentX < -100 || currentX > window.innerWidth + 100) {
+          particle.remove();
+          return;
+        }
+        
+        requestAnimationFrame(animate);
+      };
+      
+      animate();
+    }
+    
+    function create8BitFireworks(x, y) {
+      // 统一使用主题蓝色，不同深浅变化
+      const blueColors = [
+        '#58a6ff',  // 主蓝色
+        '#79c0ff',  // 浅蓝
+        '#4493f8',  // 深蓝
+        '#6ab3ff',  // 中蓝
+        '#3d8ef5'   // 更深蓝
+      ];
+      const particleCount = 10;
+      
+      for (let i = 0; i < particleCount; i++) {
+        const angle = (Math.PI * 2 / particleCount) * i + (Math.random() - 0.5) * 0.3;
+        const velocity = 1.5 + Math.random() * 2.5;
+        // 随机选择蓝色系中的一种
+        const color = blueColors[Math.floor(Math.random() * blueColors.length)];
+        
+        // 添加随机延迟，让效果更自然
+        setTimeout(() => {
+          create8BitParticle(x, y, color, angle, velocity);
+        }, i * 5);
+      }
+    }
+    
+    // 全局点击事件监听
+    document.addEventListener('click', (e) => {
+      // 排除输入框和按钮的点击（避免干扰正常交互）
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'TEXTAREA') {
+        return;
+      }
+      
+      create8BitFireworks(e.clientX, e.clientY);
+    });
   </script>
 </body>
 </html>
