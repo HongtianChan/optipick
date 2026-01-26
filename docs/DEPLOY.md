@@ -13,7 +13,7 @@
 1. 访问 Supabase Dashboard: https://supabase.com/dashboard/project/vmguvykpqihuifpdpvfl
 2. 点击左侧菜单 "SQL Editor"
 3. 点击 "New query"
-4. 复制 `supabase-setup.sql` 文件内容并粘贴
+4. 复制 `database/supabase-setup.sql` 文件内容并粘贴
 5. 点击 "Run" 执行
 
 ### 1.2 获取 API 密钥
@@ -89,7 +89,8 @@ optimal-samples-selector/
 ├── web-ui/
 │   └── index.html        # 前端界面
 ├── vercel.json           # Vercel 配置
-└── supabase-setup.sql    # 数据库初始化脚本
+└── database/
+    └── supabase-setup.sql    # 数据库初始化脚本
 ```
 
 ## 故障排查
