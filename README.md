@@ -22,9 +22,10 @@ optimal-samples-selector/
 ├── web-ui/           # Web UI source
 ├── public/           # Static files for deployment
 ├── docs/             # Documentation
+├── assets/           # Images and assets
+├── scripts/          # Setup scripts
 ├── package.json
-├── vercel.json
-└── supabase-setup.sql
+└── vercel.json
 ```
 
 ## Install
