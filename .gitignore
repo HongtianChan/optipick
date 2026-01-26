@@ -49,3 +49,4 @@ tmp/
 temp/
 *.tmp
 
+.env*.local

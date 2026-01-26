@@ -639,6 +639,88 @@
       margin-top: 15px;
     }
     
+    /* 打印样式 */
+    @media print {
+      body {
+        background: white;
+        color: black;
+        padding: 20px;
+      }
+      
+      .terminal-window {
+        box-shadow: none;
+        border: none;
+        max-width: 100%;
+      }
+      
+      .title-bar,
+      .command-prompt,
+      .tabs,
+      .buttons,
+      .help-btn,
+      .status-bar,
+      .terminal-output,
+      #user-input-section,
+      .section:not(.print-section) {
+        display: none !important;
+      }
+      
+      .print-section {
+        display: block !important;
+        page-break-inside: avoid;
+        margin-bottom: 20px;
+        padding: 15px;
+        border: 1px solid #ccc;
+        background: white;
+        color: black;
+      }
+      
+      .print-title {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #000;
+        padding-bottom: 10px;
+      }
+      
+      .print-param {
+        margin: 8px 0;
+        font-size: 14px;
+      }
+      
+      .print-param strong {
+        font-weight: bold;
+        margin-right: 10px;
+      }
+      
+      .print-samples {
+        margin: 15px 0;
+        padding: 10px;
+        background: #f5f5f5;
+        border: 1px solid #ddd;
+      }
+      
+      .print-results {
+        margin: 15px 0;
+        padding: 10px;
+        background: #f9f9f9;
+        border: 1px solid #ddd;
+        font-family: 'Courier New', monospace;
+        white-space: pre-wrap;
+      }
+      
+      .print-filename {
+        margin-top: 15px;
+        font-size: 12px;
+        color: #666;
+        font-style: italic;
+      }
+    }
+    
+    .print-section {
+      display: none;
+    }
+    
     /* 滚动条样式 */
     ::-webkit-scrollbar {
       width: 8px;
@@ -1349,7 +1431,87 @@
     
     // 打印数据库结果
     function printDbResults() {
+      const dbResults = document.getElementById('db-results').value;
+      const dbFilename = document.getElementById('db-filename').textContent;
+      
+      if (!dbResults) {
+        addTerminalOutput('Error: no data to print', 'error');
+        return;
+      }
+      
+      // 解析结果内容
+      const lines = dbResults.split('\n');
+      let params = {};
+      let samples = [];
+      let groups = [];
+      let count = 0;
+      
+      lines.forEach(line => {
+        if (line.startsWith('params:')) {
+          const match = line.match(/m=(\d+), n=(\d+), k=(\d+), j=(\d+), s=(\d+)/);
+          if (match) {
+            params = { m: match[1], n: match[2], k: match[3], j: match[4], s: match[5] };
+          }
+        } else if (line.startsWith('samples:')) {
+          const match = line.match(/\[(.*)\]/);
+          if (match) {
+            samples = match[1].split(',').map(s => s.trim());
+          }
+        } else if (line.startsWith('groups:')) {
+          const match = line.match(/groups: (\d+)/);
+          if (match) {
+            count = match[1];
+          }
+        } else if (line.match(/^\d+\. \[.*\]$/)) {
+          const match = line.match(/^\d+\. \[(.*)\]$/);
+          if (match) {
+            groups.push(match[1].split(',').map(s => s.trim()));
+          }
+        }
+      });
+      
+      // 创建打印内容
+      const printContent = document.createElement('div');
+      printContent.className = 'print-section';
+      printContent.innerHTML = `
+        <div class="print-title">An Optimal Samples Selection System - Database Results</div>
+        
+        ${dbFilename ? `<div class="print-filename" style="margin-bottom: 15px;"><strong>File:</strong> ${dbFilename}</div>` : ''}
+        
+        ${Object.keys(params).length > 0 ? `
+          <div class="print-param"><strong>Parameters:</strong></div>
+          <div class="print-param">m = ${params.m}, n = ${params.n}, k = ${params.k}, j = ${params.j}, s = ${params.s}</div>
+        ` : ''}
+        
+        ${samples.length > 0 ? `
+          <div class="print-samples">
+            <strong>Selected Samples (n = ${samples.length}):</strong><br>
+            ${samples.map((v, idx) => `${idx + 1}st # ${v}`).join('<br>')}
+          </div>
+        ` : ''}
+        
+        <div class="print-results">
+          <strong>Results:</strong><br>
+          Total Groups: ${count}<br><br>
+          <strong>Groups:</strong><br>
+          ${groups.map((group, idx) => `${idx + 1}. [${group.join(', ')}]`).join('<br>')}
+        </div>
+        
+        <div class="print-filename" style="margin-top: 20px;">
+          Generated at: ${new Date().toLocaleString()}
+        </div>
+      `;
+      
+      // 临时添加到页面
+      document.body.appendChild(printContent);
+      
+      // 打印
       window.print();
+      
+      // 打印后移除
+      setTimeout(() => {
+        document.body.removeChild(printContent);
+      }, 100);
     }
     
     // 错误处理
