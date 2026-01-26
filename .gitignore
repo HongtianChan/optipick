@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 package-lock.json
+# 但保留根目录和 api 目录的 package.json
+!package.json
+!api/package.json
 
 # OS
 .DS_Store

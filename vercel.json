@@ -2,11 +2,7 @@
   "rewrites": [
     {
       "source": "/",
-      "destination": "/web-ui/index.html"
-    },
-    {
-      "source": "/index.html",
-      "destination": "/web-ui/index.html"
+      "destination": "/index.html"
     }
   ]
 }
