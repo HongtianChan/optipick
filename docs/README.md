@@ -1,17 +1,21 @@
 # 文档目录
 
-## 部署相关
+## 部署
 
-- [Vercel 部署指南](./vercel-deployment-guide.md) - 完整的 Vercel + Supabase 部署流程，包含常见问题解决
-- [部署说明](./DEPLOY.md) - 快速部署参考（如果存在）
+- [Vercel 部署指南](./vercel-deployment-guide.md) - Vercel + Supabase 部署流程、工作流程、故障排查
 
-## 设计相关
+## 网站与费用
 
-- [Ben Tossell 风格参考](./bentossell-style.md) - Web UI 设计灵感来源和风格分析
-- [颜色调色板](./color-palette.md) - Web UI 使用的所有颜色值和使用场景
+- [网站常见问题](./website-faq.md) - 是否永久、免费额度、域名、数据备份
+- [中国大陆访问](./china-access-solutions.md) - 国内无法访问时的方案
 
-## 项目文档
+## 设计与使用
 
-- [项目说明](./project-spec/Group%20Project%20说明.md) - 项目需求、参数说明、示例
-- [对话记录](./对话记录.md) - 开发过程中的重要决策和讨论
-- [中国大陆访问解决方案](./china-access-solutions.md) - 解决 Vercel 在国内无法访问的问题
+- [设计说明](./design.md) - 风格参考（Ben Tossell）、配色与原则
+- [使用示例](./usage-example.md) - 以 E.g.5 为例的完整操作步骤
+
+## 项目与算法
+
+- [项目说明](./project-spec/Group%20Project%20说明.md) - 需求、参数、示例
+- [算法与 API 简介](./algorithm-and-api-brief.md) - algorithm.js 函数、调用的 API、系统流程（汇报用）
+- [对话记录](./对话记录.md) - 开发中的重要决策与讨论

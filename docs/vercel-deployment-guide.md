@@ -93,10 +93,10 @@ cp web-ui/index.html public/index.html
 ### 4.1 创建数据库表
 
 1. 访问 Supabase Dashboard
-2. 进入 SQL Editor
-3. 执行 SQL 脚本创建表结构
+2. 进入 SQL Editor → New query
+3. 复制项目内 `database/supabase-setup.sql` 内容并执行
 
-示例（results 表）：
+表结构示例（results 表）：
 ```sql
 CREATE TABLE IF NOT EXISTS results (
   id BIGSERIAL PRIMARY KEY,
@@ -287,18 +287,34 @@ project/
 └── .gitignore           # 确保不忽略必要文件
 ```
 
+## 部署工作流程
+
+**自动部署**：push 到 GitHub 后 Vercel 自动部署（约 1–3 分钟）。需在 Vercel 中正确关联仓库。
+
+**手动部署**：`vercel --prod`
+
+**修改 `web-ui/index.html` 后**：同步到 `public/` 再提交  
+`cp web-ui/index.html public/index.html`
+
+**环境变量修改后**：需重新部署（Dashboard 改完或 `vercel --prod`）才生效。
+
+## 故障排查
+
+**Failed to fetch**：  
+- 本地需用 `node cli/index.js web` 起服务访问，不要直接打开 HTML。  
+- 线上用 https://optipick-system.vercel.app。  
+- 检查 Network/Console，验证 API：  
+  `curl -X POST https://optipick-system.vercel.app/api/solve -H "Content-Type: application/json" -d '{"m":45,"n":8,"k":6,"j":6,"s":5}'`
+
+**API/DB 异常**：检查 Vercel 环境变量、Supabase 表与 RLS、Vercel 函数日志。
+
+**国内无法访问**：见 [中国大陆访问解决方案](./china-access-solutions.md)。
+
+---
+
 ## 更新部署
 
-代码更新后：
-
-```bash
-git add .
-git commit -m "更新说明"
-git push
-vercel --prod  # 手动触发生产部署
-```
-
-或等待 Vercel 自动部署（如果启用了 GitHub 集成）。
+代码更新后：`git add . && git commit -m "更新说明" && git push`，再视需要执行 `vercel --prod` 或等待自动部署。
 
 ## 有用的命令
 
