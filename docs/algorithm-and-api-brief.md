@@ -8,8 +8,9 @@
 | `generateCombinations(arr, k)` | 从数组 arr 中生成所有选 k 个的组合，回溯枚举。 |
 | `intersectionSize(set1, set2)` | 求两个集合交集的元素个数。 |
 | `coversRequirement(kGroup, jCombination, j, s, atLeast)` | 判断一个 k 组是否“覆盖”某个 j 组合：交集≥s；若 j=s 则要求该 j 组合内所有 s 子集都在 k 组中出现；若 j≠s 则要求至少 atLeast 个 s 子集被覆盖。 |
-| `buildCoverageIndexes(...)` | **新增**：预计算每个 k 组覆盖的 j 组合下标列表，供贪心/回溯加速及启发式排序使用。 |
-| `greedySetCover(nSamples, k, j, s, atLeast)` | 贪心集合覆盖：用覆盖下标快速找能新覆盖最多 j 组合的 k 组。近似解。 |
+| `buildCoverageIndexes(...)` | 预计算每个 k 组覆盖的 j 组合下标列表，供贪心/回溯加速及启发式排序使用。 |
+| `deduplicateByCoverage(...)` | **Burnside 去重**：按覆盖集合分类，每类只保留一个代表元，缩小搜索空间。 |
+| `greedySetCover(nSamples, k, j, s, atLeast)` | 贪心集合覆盖：Burnside 去重后，用覆盖下标快速找能新覆盖最多 j 组合的 k 组。近似解。 |
 | `removeRedundantGroups(...)` | **新增**：贪心解后处理——若某组覆盖的 j 组合都已被其他组覆盖则删除（分层精修）。 |
 | `backtrackSetCover(nSamples, k, j, s, atLeast)` | 回溯集合覆盖：先跑贪心得上界，k 组按覆盖数降序（启发式），下界剪枝。精确解（C(n,k)≤100）。 |
 | `solveOptimalSamples(...)` | 入口：确定 n 个样本，按 C(n,k) 是否≤100 选回溯或贪心；贪心后调 `removeRedundantGroups`。返回 samples、groups、count、method。 |

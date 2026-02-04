@@ -1,8 +1,10 @@
-// 复制算法核心代码到 api 目录（与 cli/src/algorithm.js 同步，含分层+启发式优化）
+// API 算法核心（与 cli/src/algorithm.js 同步，含 Burnside 去重优化）
+// 组合数计算：nCk
 function combination(n, k) {
   if (k > n || k < 0) return 0;
   if (k === 0 || k === n) return 1;
-  if (k > n - k) k = n - k;
+  if (k > n - k) k = n - k; // 优化
+  
   let result = 1;
   for (let i = 0; i < k; i++) {
     result = result * (n - i) / (i + 1);
@@ -10,46 +12,67 @@ function combination(n, k) {
   return Math.round(result);
 }
 
+// 生成所有组合：从 arr 中选 k 个
 function generateCombinations(arr, k) {
   if (k === 0) return [[]];
   if (k > arr.length) return [];
+  
   const result = [];
+  
   function backtrack(start, current) {
     if (current.length === k) {
       result.push([...current]);
       return;
     }
+    
     for (let i = start; i < arr.length; i++) {
       current.push(arr[i]);
       backtrack(i + 1, current);
       current.pop();
     }
   }
+  
   backtrack(0, []);
   return result;
 }
 
+// 检查两个集合的交集大小
 function intersectionSize(set1, set2) {
   const s1 = new Set(set1);
   return set2.filter(x => s1.has(x)).length;
 }
 
+// 检查 k 组是否覆盖 j 组合的要求
 function coversRequirement(kGroup, jCombination, j, s, atLeast = 1) {
   const intersect = intersectionSize(kGroup, jCombination);
+  
   if (intersect < s) return false;
+  
   if (j === s) {
+    // j = s：要求所有 s 组合都被覆盖
+    // 交集必须等于 j（即 k 组必须包含整个 j 组合）
     if (intersect !== j) return false;
+    
     const sCombinations = generateCombinations(jCombination, s);
     const kSubsets = generateCombinations(kGroup.filter(x => jCombination.includes(x)), s);
+    
     const kSubsetsSet = new Set(kSubsets.map(sub => sub.sort().join(',')));
     return sCombinations.every(sComb => {
       const key = sComb.sort().join(',');
       return kSubsetsSet.has(key);
     });
   } else {
-    if (atLeast === 1) return intersect >= s;
+    // j ≠ s：要求至少 atLeast 个 s 组合被覆盖
+    // 如果交集 >= s，那么交集中的任意 s 个元素组成的 s 组合肯定在 k 组中
+    // 所以至少有一个 s 组合被覆盖（当 atLeast = 1 时）
+    if (atLeast === 1) {
+      return intersect >= s;
+    }
+    
+    // 如果需要至少 atLeast 个 s 组合，需要具体计算
     const sCombinations = generateCombinations(jCombination, s);
     const kSubsets = generateCombinations(kGroup.filter(x => jCombination.includes(x)), s);
+    
     const kSubsetsSet = new Set(kSubsets.map(sub => sub.sort().join(',')));
     let covered = 0;
     for (const sComb of sCombinations) {
@@ -63,6 +86,7 @@ function coversRequirement(kGroup, jCombination, j, s, atLeast = 1) {
   }
 }
 
+// 预计算：每个 k 组覆盖的 j 组合下标列表（用于加速贪心 + 启发式排序）
 function buildCoverageIndexes(allKGroups, allJCombinations, j, s, atLeast) {
   const indexes = [];
   for (const kGroup of allKGroups) {
@@ -75,20 +99,52 @@ function buildCoverageIndexes(allKGroups, allJCombinations, j, s, atLeast) {
   return indexes;
 }
 
+// Burnside 式去重：按「覆盖集合」分类，只保留每类一个代表元
+// 返回 { uniqueGroups, uniqueCoverage, originalCount, uniqueCount }
+function deduplicateByCoverage(allKGroups, coverageIndexes) {
+  const seen = new Map(); // key -> first index
+  const uniqueGroups = [];
+  const uniqueCoverage = [];
+  
+  for (let i = 0; i < allKGroups.length; i++) {
+    // 用排序后的覆盖下标列表作为等价类的 key
+    const key = coverageIndexes[i].slice().sort((a, b) => a - b).join(',');
+    if (!seen.has(key)) {
+      seen.set(key, uniqueGroups.length);
+      uniqueGroups.push(allKGroups[i]);
+      uniqueCoverage.push(coverageIndexes[i]);
+    }
+  }
+  
+  return {
+    uniqueGroups,
+    uniqueCoverage,
+    originalCount: allKGroups.length,
+    uniqueCount: uniqueGroups.length
+  };
+}
+
+// 贪心算法：找最少组数（近似解），内部用覆盖下标加速 + Burnside 去重
 function greedySetCover(nSamples, k, j, s, atLeast = 1) {
-  const allKGroups = generateCombinations(nSamples, k);
+  const allKGroupsRaw = generateCombinations(nSamples, k);
   const allJCombinations = generateCombinations(nSamples, j);
-  const coverageIndexes = buildCoverageIndexes(allKGroups, allJCombinations, j, s, atLeast);
+  const coverageIndexesRaw = buildCoverageIndexes(allKGroupsRaw, allJCombinations, j, s, atLeast);
+  
+  // Burnside 去重：只考虑本质不同的 k 组
+  const { uniqueGroups, uniqueCoverage } = deduplicateByCoverage(allKGroupsRaw, coverageIndexesRaw);
+
   const selected = [];
-  const selectedKey = new Set();
+  const selectedIdx = new Set(); // 已选组的下标
   const covered = new Set();
+
   while (covered.size < allJCombinations.length) {
     let bestIdx = -1;
     let bestNewCoverage = 0;
-    for (let g = 0; g < allKGroups.length; g++) {
-      if (selectedKey.has(allKGroups[g].join(','))) continue;
+
+    for (let g = 0; g < uniqueGroups.length; g++) {
+      if (selectedIdx.has(g)) continue;
       let newCov = 0;
-      for (const jIdx of coverageIndexes[g]) {
+      for (const jIdx of uniqueCoverage[g]) {
         if (!covered.has(jIdx)) newCov++;
       }
       if (newCov > bestNewCoverage) {
@@ -96,15 +152,18 @@ function greedySetCover(nSamples, k, j, s, atLeast = 1) {
         bestIdx = g;
       }
     }
+
     if (bestIdx < 0 || bestNewCoverage === 0) break;
-    const bestGroup = allKGroups[bestIdx];
-    selected.push(bestGroup);
-    selectedKey.add(bestGroup.join(','));
-    for (const jIdx of coverageIndexes[bestIdx]) covered.add(jIdx);
+
+    selected.push(uniqueGroups[bestIdx]);
+    selectedIdx.add(bestIdx);
+    for (const jIdx of uniqueCoverage[bestIdx]) covered.add(jIdx);
   }
+
   return selected;
 }
 
+// 分层：贪心解的后处理——移除冗余组（若某组覆盖的 j 组合均已被其他已选组覆盖则可删）
 function removeRedundantGroups(selected, allJCombinations, j, s, atLeast) {
   if (selected.length <= 1) return selected;
   const result = [...selected];
@@ -129,17 +188,28 @@ function removeRedundantGroups(selected, allJCombinations, j, s, atLeast) {
   return result;
 }
 
+// 回溯算法：找精确最优解（小规模）
+// 启发式：1) 先用贪心得到上界；2) k 组按“覆盖数”降序排列，优先进分支；3) 下界剪枝
 function backtrackSetCover(nSamples, k, j, s, atLeast = 1, maxGroups = Infinity) {
   const allJCombinations = generateCombinations(nSamples, j);
-  let allKGroups = generateCombinations(nSamples, k);
-  const coverageIndexes = buildCoverageIndexes(allKGroups, allJCombinations, j, s, atLeast);
-  const order = allKGroups.map((_, i) => i).sort((a, b) => coverageIndexes[b].length - coverageIndexes[a].length);
-  allKGroups = order.map(i => allKGroups[i]);
-  const reorderedCoverage = order.map(i => coverageIndexes[i]);
-  const maxSingleCover = Math.max(...reorderedCoverage.map(list => list.length), 1);
+  const allKGroupsRaw = generateCombinations(nSamples, k);
+  const coverageIndexesRaw = buildCoverageIndexes(allKGroupsRaw, allJCombinations, j, s, atLeast);
+  
+  // Burnside 去重：只考虑本质不同的 k 组
+  const { uniqueGroups, uniqueCoverage } = deduplicateByCoverage(allKGroupsRaw, coverageIndexesRaw);
+
+  // 启发式排序：覆盖数多的 k 组排在前面
+  const order = uniqueGroups.map((_, i) => i).sort((a, b) => uniqueCoverage[b].length - uniqueCoverage[a].length);
+  const sortedGroups = order.map(i => uniqueGroups[i]);
+  const sortedCoverage = order.map(i => uniqueCoverage[i]);
+
+  const maxSingleCover = Math.max(...sortedCoverage.map(list => list.length), 1);
+
+  // 上界：先跑贪心，最优解不会差于贪心解
   const greedySolution = greedySetCover(nSamples, k, j, s, atLeast);
   let bestCount = Math.min(greedySolution.length, maxGroups);
   let bestSolution = greedySolution.map(g => [...g]);
+
   function backtrack(selected, covered, startIdx) {
     if (selected.length >= bestCount) return;
     if (covered.size === allJCombinations.length) {
@@ -147,43 +217,55 @@ function backtrackSetCover(nSamples, k, j, s, atLeast = 1, maxGroups = Infinity)
       bestSolution = selected.map(g => [...g]);
       return;
     }
-    if (startIdx >= allKGroups.length) return;
+    if (startIdx >= sortedGroups.length) return;
+
     const uncovered = allJCombinations.length - covered.size;
     const lb = Math.ceil(uncovered / maxSingleCover);
     if (selected.length + lb >= bestCount) return;
+
     backtrack(selected, covered, startIdx + 1);
-    const currentGroup = allKGroups[startIdx];
+
+    const currentGroup = sortedGroups[startIdx];
     const newCovered = new Set(covered);
-    for (const jIdx of reorderedCoverage[startIdx]) newCovered.add(jIdx);
+    for (const jIdx of sortedCoverage[startIdx]) newCovered.add(jIdx);
+
     if (newCovered.size > covered.size) {
       selected.push(currentGroup);
       backtrack(selected, newCovered, startIdx + 1);
       selected.pop();
     }
   }
+
   backtrack([], new Set(), 0);
   return bestSolution;
 }
 
+// 主算法：根据规模选择回溯或贪心
 function solveOptimalSamples(m, n, k, j, s, atLeast = 1, randomSamples = null) {
+  // 生成 n 个样本（随机或手动）
   let nSamples;
   if (randomSamples && randomSamples.length === n) {
     nSamples = randomSamples;
   } else {
+    // 随机从 1 到 m 中选 n 个
     const all = Array.from({ length: m }, (_, i) => i + 1);
     const shuffled = all.sort(() => Math.random() - 0.5);
     nSamples = shuffled.slice(0, n).sort((a, b) => a - b);
   }
+  
   const totalKGroups = combination(n, k);
   const useExact = totalKGroups <= 100;
+
   let result;
   if (useExact) {
     result = backtrackSetCover(nSamples, k, j, s, atLeast);
   } else {
     result = greedySetCover(nSamples, k, j, s, atLeast);
+    // 分层：贪心后再做一层冗余移除，往往能减少组数
     const allJ = generateCombinations(nSamples, j);
     result = removeRedundantGroups(result, allJ, j, s, atLeast);
   }
+
   return {
     samples: nSamples,
     groups: result,
@@ -193,3 +275,4 @@ function solveOptimalSamples(m, n, k, j, s, atLeast = 1, randomSamples = null) {
 }
 
 module.exports = { solveOptimalSamples };
+
