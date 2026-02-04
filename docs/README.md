@@ -18,4 +18,6 @@
 
 - [项目说明](./project-spec/Group%20Project%20说明.md) - 需求、参数、示例
 - [算法与 API 简介](./algorithm-and-api-brief.md) - algorithm.js 函数、调用的 API、系统流程（汇报用）
+- [算法优化说明](./algorithm-optimizations.md) - 分层 + 启发式搜索优化（覆盖预计算、冗余移除、下界剪枝）
+- [优化讨论总结](./讨论总结-算法优化与分层启发式.md) - 优化思路来源与代码位置对照
 - [对话记录](./对话记录.md) - 开发中的重要决策与讨论

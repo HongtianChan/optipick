@@ -85,101 +85,128 @@ function coversRequirement(kGroup, jCombination, j, s, atLeast = 1) {
   }
 }
 
-// 贪心算法：找最少组数（近似解）
+// 预计算：每个 k 组覆盖的 j 组合下标列表（用于加速贪心 + 启发式排序）
+function buildCoverageIndexes(allKGroups, allJCombinations, j, s, atLeast) {
+  const indexes = [];
+  for (const kGroup of allKGroups) {
+    const list = [];
+    for (let i = 0; i < allJCombinations.length; i++) {
+      if (coversRequirement(kGroup, allJCombinations[i], j, s, atLeast)) list.push(i);
+    }
+    indexes.push(list);
+  }
+  return indexes;
+}
+
+// 贪心算法：找最少组数（近似解），内部用覆盖下标加速
 function greedySetCover(nSamples, k, j, s, atLeast = 1) {
   const allKGroups = generateCombinations(nSamples, k);
   const allJCombinations = generateCombinations(nSamples, j);
-  
+  const coverageIndexes = buildCoverageIndexes(allKGroups, allJCombinations, j, s, atLeast);
+
   const selected = [];
+  const selectedKey = new Set(); // 已选组的 key，用于 O(1) 判重
   const covered = new Set();
-  
+
   while (covered.size < allJCombinations.length) {
-    let bestGroup = null;
-    let bestCoverage = 0;
-    
-    for (const kGroup of allKGroups) {
-      if (selected.some(sel => JSON.stringify(sel) === JSON.stringify(kGroup))) {
-        continue; // 已选择
+    let bestIdx = -1;
+    let bestNewCoverage = 0;
+
+    for (let g = 0; g < allKGroups.length; g++) {
+      if (selectedKey.has(allKGroups[g].join(','))) continue;
+      let newCov = 0;
+      for (const jIdx of coverageIndexes[g]) {
+        if (!covered.has(jIdx)) newCov++;
       }
-      
-      let newCoverage = 0;
-      for (let i = 0; i < allJCombinations.length; i++) {
-        if (covered.has(i)) continue;
-        
-        if (coversRequirement(kGroup, allJCombinations[i], j, s, atLeast)) {
-          newCoverage++;
-        }
-      }
-      
-      if (newCoverage > bestCoverage) {
-        bestCoverage = newCoverage;
-        bestGroup = kGroup;
+      if (newCov > bestNewCoverage) {
+        bestNewCoverage = newCov;
+        bestIdx = g;
       }
     }
-    
-    if (!bestGroup || bestCoverage === 0) break;
-    
+
+    if (bestIdx < 0 || bestNewCoverage === 0) break;
+
+    const bestGroup = allKGroups[bestIdx];
     selected.push(bestGroup);
-    
-    // 标记新覆盖的 j 组合
-    for (let i = 0; i < allJCombinations.length; i++) {
-      if (!covered.has(i) && coversRequirement(bestGroup, allJCombinations[i], j, s, atLeast)) {
-        covered.add(i);
-      }
-    }
+    selectedKey.add(bestGroup.join(','));
+    for (const jIdx of coverageIndexes[bestIdx]) covered.add(jIdx);
   }
-  
+
   return selected;
 }
 
-// 回溯算法：找精确最优解（小规模）
-function backtrackSetCover(nSamples, k, j, s, atLeast = 1, maxGroups = Infinity) {
-  const allKGroups = generateCombinations(nSamples, k);
-  const allJCombinations = generateCombinations(nSamples, j);
-  
-  let bestSolution = null;
-  let bestCount = Infinity;
-  
-  function backtrack(selected, covered, startIdx) {
-    // 剪枝：如果当前解已经不可能更优
-    if (selected.length >= bestCount) return;
-    
-    // 检查是否全部覆盖
-    if (covered.size === allJCombinations.length) {
-      if (selected.length < bestCount) {
-        bestCount = selected.length;
-        bestSolution = selected.map(g => [...g]);
+// 分层：贪心解的后处理——移除冗余组（若某组覆盖的 j 组合均已被其他已选组覆盖则可删）
+function removeRedundantGroups(selected, allJCombinations, j, s, atLeast) {
+  if (selected.length <= 1) return selected;
+  const result = [...selected];
+  for (let i = result.length - 1; i >= 0; i--) {
+    const without = result.filter((_, idx) => idx !== i);
+    const covered = new Set();
+    for (const g of without) {
+      for (let jIdx = 0; jIdx < allJCombinations.length; jIdx++) {
+        if (coversRequirement(g, allJCombinations[jIdx], j, s, atLeast)) covered.add(jIdx);
       }
+    }
+    let redundant = true;
+    for (let jIdx = 0; jIdx < allJCombinations.length; jIdx++) {
+      if (!coversRequirement(result[i], allJCombinations[jIdx], j, s, atLeast)) continue;
+      if (!covered.has(jIdx)) {
+        redundant = false;
+        break;
+      }
+    }
+    if (redundant) result.splice(i, 1);
+  }
+  return result;
+}
+
+// 回溯算法：找精确最优解（小规模）
+// 启发式：1) 先用贪心得到上界；2) k 组按“覆盖数”降序排列，优先进分支；3) 下界剪枝
+function backtrackSetCover(nSamples, k, j, s, atLeast = 1, maxGroups = Infinity) {
+  const allJCombinations = generateCombinations(nSamples, j);
+  let allKGroups = generateCombinations(nSamples, k);
+  const coverageIndexes = buildCoverageIndexes(allKGroups, allJCombinations, j, s, atLeast);
+
+  // 启发式排序：覆盖数多的 k 组排在前面，便于尽早找到好解、加强剪枝
+  const order = allKGroups.map((_, i) => i).sort((a, b) => coverageIndexes[b].length - coverageIndexes[a].length);
+  allKGroups = order.map(i => allKGroups[i]);
+  const reorderedCoverage = order.map(i => coverageIndexes[i]);
+
+  const maxSingleCover = Math.max(...reorderedCoverage.map(list => list.length), 1);
+
+  // 上界：先跑贪心，最优解不会差于贪心解
+  const greedySolution = greedySetCover(nSamples, k, j, s, atLeast);
+  let bestCount = Math.min(greedySolution.length, maxGroups);
+  let bestSolution = greedySolution.map(g => [...g]);
+
+  function backtrack(selected, covered, startIdx) {
+    if (selected.length >= bestCount) return;
+    if (covered.size === allJCombinations.length) {
+      bestCount = selected.length;
+      bestSolution = selected.map(g => [...g]);
       return;
     }
-    
-    // 剪枝：如果剩余组数不够
     if (startIdx >= allKGroups.length) return;
-    if (selected.length + 1 >= bestCount) return;
-    
-    // 尝试不选当前组
+
+    const uncovered = allJCombinations.length - covered.size;
+    const lb = Math.ceil(uncovered / maxSingleCover);
+    if (selected.length + lb >= bestCount) return;
+
     backtrack(selected, covered, startIdx + 1);
-    
-    // 尝试选当前组
+
     const currentGroup = allKGroups[startIdx];
     const newCovered = new Set(covered);
-    
-    for (let i = 0; i < allJCombinations.length; i++) {
-      if (!newCovered.has(i) && coversRequirement(currentGroup, allJCombinations[i], j, s, atLeast)) {
-        newCovered.add(i);
-      }
-    }
-    
+    for (const jIdx of reorderedCoverage[startIdx]) newCovered.add(jIdx);
+
     if (newCovered.size > covered.size) {
       selected.push(currentGroup);
       backtrack(selected, newCovered, startIdx + 1);
       selected.pop();
     }
   }
-  
+
   backtrack([], new Set(), 0);
-  
-  return bestSolution || [];
+  return bestSolution;
 }
 
 // 主算法：根据规模选择回溯或贪心
@@ -195,17 +222,19 @@ function solveOptimalSamples(m, n, k, j, s, atLeast = 1, randomSamples = null) {
     nSamples = shuffled.slice(0, n).sort((a, b) => a - b);
   }
   
-  // 根据规模选择算法
   const totalKGroups = combination(n, k);
-  const useExact = totalKGroups <= 100; // 小规模用精确算法
-  
+  const useExact = totalKGroups <= 100;
+
   let result;
   if (useExact) {
     result = backtrackSetCover(nSamples, k, j, s, atLeast);
   } else {
     result = greedySetCover(nSamples, k, j, s, atLeast);
+    // 分层：贪心后再做一层冗余移除，往往能减少组数
+    const allJ = generateCombinations(nSamples, j);
+    result = removeRedundantGroups(result, allJ, j, s, atLeast);
   }
-  
+
   return {
     samples: nSamples,
     groups: result,
@@ -218,6 +247,8 @@ module.exports = {
   combination,
   generateCombinations,
   solveOptimalSamples,
-  coversRequirement
+  coversRequirement,
+  buildCoverageIndexes,
+  removeRedundantGroups
 };
 

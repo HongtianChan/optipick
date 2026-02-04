@@ -8,9 +8,13 @@
 | `generateCombinations(arr, k)` | 从数组 arr 中生成所有选 k 个的组合，回溯枚举。 |
 | `intersectionSize(set1, set2)` | 求两个集合交集的元素个数。 |
 | `coversRequirement(kGroup, jCombination, j, s, atLeast)` | 判断一个 k 组是否“覆盖”某个 j 组合：交集≥s；若 j=s 则要求该 j 组合内所有 s 子集都在 k 组中出现；若 j≠s 则要求至少 atLeast 个 s 子集被覆盖。 |
-| `greedySetCover(nSamples, k, j, s, atLeast)` | 贪心集合覆盖：每轮选能新覆盖最多未覆盖 j 组合的 k 组，直到全部覆盖。近似解，适用于规模大时。 |
-| `backtrackSetCover(nSamples, k, j, s, atLeast)` | 回溯集合覆盖：枚举选/不选每个 k 组，剪枝（当前组数≥已知最优则停），得到最少组数的精确解。仅在小规模（C(n,k)≤100）时使用。 |
-| `solveOptimalSamples(m, n, k, j, s, atLeast, randomSamples)` | 入口：确定 n 个样本（传入或从 1..m 随机），按 C(n,k) 是否≤100 选回溯或贪心，返回 samples、groups、count、method。 |
+| `buildCoverageIndexes(...)` | **新增**：预计算每个 k 组覆盖的 j 组合下标列表，供贪心/回溯加速及启发式排序使用。 |
+| `greedySetCover(nSamples, k, j, s, atLeast)` | 贪心集合覆盖：用覆盖下标快速找能新覆盖最多 j 组合的 k 组。近似解。 |
+| `removeRedundantGroups(...)` | **新增**：贪心解后处理——若某组覆盖的 j 组合都已被其他组覆盖则删除（分层精修）。 |
+| `backtrackSetCover(nSamples, k, j, s, atLeast)` | 回溯集合覆盖：先跑贪心得上界，k 组按覆盖数降序（启发式），下界剪枝。精确解（C(n,k)≤100）。 |
+| `solveOptimalSamples(...)` | 入口：确定 n 个样本，按 C(n,k) 是否≤100 选回溯或贪心；贪心后调 `removeRedundantGroups`。返回 samples、groups、count、method。 |
+
+> 详细优化说明见 [algorithm-optimizations.md](./algorithm-optimizations.md)
 
 ---
 
@@ -39,7 +43,7 @@
 
 1. **输入**：m,n,k,j,s；可指定 n 个样本，或由系统从 1..m 中随机取 n 个。  
 2. **问题**：在 n 个样本上，用最少的“k 组”（每个组为 k 个样本）覆盖所有“j 组合”的约束（每个 j 组合需满足与某 k 组的交集对 s、atLeast 的覆盖条件）。  
-3. **算法选择**：若 C(n,k)≤100 用回溯求最优；否则用贪心求近似。  
+3. **算法选择**：若 C(n,k)≤100 用回溯（含启发式排序+下界剪枝）求最优；否则用贪心+冗余移除求近似。  
 4. **输出**：最少（或近似最少）的 k 组集合；前端展示，可选“保存”写入 Supabase。  
 5. **持久化**：保存/列表/查看/删除均通过本项目 HTTP API 转发到 Supabase 完成。
 
@@ -62,5 +66,10 @@
 3. **覆盖判定与求解器解耦**  
    “一个 k 组是否覆盖一个 j 组合”全部由 `coversRequirement` 负责，backtrack/greedy 只依赖该判定。覆盖语义可扩展（如加新规则主要改判定），求解逻辑复用。
 
-4. **说明**  
-   回溯与贪心均为经典方法，未提出新算法或新复杂度结论；创新主要在**建模**（约束型覆盖形式化）与**工程策略**（规模自适应 + 解耦设计）。
+4. **分层与启发式优化**  
+   - **分层**：贪心后做冗余组移除（精修层）；回溯前先跑贪心得上界。  
+   - **启发式**：覆盖预计算（`buildCoverageIndexes`）、k 组按覆盖数降序排列、下界剪枝。  
+   详见 [algorithm-optimizations.md](./algorithm-optimizations.md)。
+
+5. **说明**  
+   回溯与贪心均为经典方法，未提出新算法或新复杂度结论；创新主要在**建模**（约束型覆盖形式化）与**工程策略**（规模自适应 + 分层精修 + 启发式剪枝）。
