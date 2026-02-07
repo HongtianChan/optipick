@@ -41,9 +41,18 @@ function intersectionSize(set1, set2) {
   return set2.filter(x => s1.has(x)).length;
 }
 
-// 检查 k 组是否覆盖 j 组合的要求
-function coversRequirement(kGroup, jCombination, j, s, atLeast = 1) {
-  const intersect = intersectionSize(kGroup, jCombination);
+// 当 k 组已为 Set 时用，避免重复 new Set（buildCoverageIndexes 内热路径）
+function intersectionSizeWithSet(kGroupSet, jCombination) {
+  let c = 0;
+  for (const x of jCombination) if (kGroupSet.has(x)) c++;
+  return c;
+}
+
+// 检查 k 组是否覆盖 j 组合的要求；可选传入 kGroupSet 避免重复建 Set
+function coversRequirement(kGroup, jCombination, j, s, atLeast = 1, kGroupSet = null) {
+  const intersect = kGroupSet != null
+    ? intersectionSizeWithSet(kGroupSet, jCombination)
+    : intersectionSize(kGroup, jCombination);
   
   if (intersect < s) return false;
   
@@ -86,12 +95,15 @@ function coversRequirement(kGroup, jCombination, j, s, atLeast = 1) {
 }
 
 // 预计算：每个 k 组覆盖的 j 组合下标列表（用于加速贪心 + 启发式排序）
+// 预计算每个 k 组的 Set，避免内层 25M 次 new Set
 function buildCoverageIndexes(allKGroups, allJCombinations, j, s, atLeast) {
+  const kGroupSets = allKGroups.map(g => new Set(g));
   const indexes = [];
-  for (const kGroup of allKGroups) {
+  for (let g = 0; g < allKGroups.length; g++) {
     const list = [];
+    const kSet = kGroupSets[g];
     for (let i = 0; i < allJCombinations.length; i++) {
-      if (coversRequirement(kGroup, allJCombinations[i], j, s, atLeast)) list.push(i);
+      if (coversRequirement(allKGroups[g], allJCombinations[i], j, s, atLeast, kSet)) list.push(i);
     }
     indexes.push(list);
   }
