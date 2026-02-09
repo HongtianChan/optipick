@@ -14,6 +14,10 @@
 - [设计说明](./design.md) - 风格参考（Ben Tossell）、配色与原则
 - [使用示例](./usage-example.md) - 以 E.g.5 为例的完整操作步骤
 
+## 开发历程
+
+- [开发历程](./development-journey.md) - 完整记录：页面设计、算法设计、性能优化、灵感来源
+
 ## 项目与算法
 
 - [项目说明](./project-spec/Group%20Project%20说明.md) - 需求、参数、示例
