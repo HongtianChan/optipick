@@ -48,9 +48,23 @@ function intersectionSizeWithSet(kGroupSet, jCombination) {
   for (const x of jCombination) if (kGroupSet.has(x)) c++;
   return c;
 }
+function intersectionAtLeastWithSet(kGroupSet, jCombination, s) {
+  let c = 0;
+  for (const x of jCombination) {
+    if (kGroupSet.has(x)) {
+      c++;
+      if (c >= s) return true;
+    }
+  }
+  return false;
+}
 
 // 检查 k 组是否覆盖 j 组合的要求；可选传入 kGroupSet 避免重复建 Set
 function coversRequirement(kGroup, jCombination, j, s, atLeast = 1, kGroupSet = null) {
+  if (j !== s && atLeast === 1 && kGroupSet != null) {
+    if (!intersectionAtLeastWithSet(kGroupSet, jCombination, s)) return false;
+    return true;
+  }
   const intersect = kGroupSet != null
     ? intersectionSizeWithSet(kGroupSet, jCombination)
     : intersectionSize(kGroup, jCombination);
@@ -111,6 +125,32 @@ function buildCoverageIndexes(allKGroups, allJCombinations, j, s, atLeast) {
   return indexes;
 }
 
+// --- 位图加速贪心：覆盖关系用 Uint32Array，popcount(a & ~b) 算新增覆盖 ---
+function popcount32(x) {
+  x = x - ((x >>> 1) & 0x55555555);
+  x = (x & 0x33333333) + ((x >>> 2) & 0x33333333);
+  return ((x + (x >>> 4) & 0x0f0f0f0f) * 0x1010101) >>> 24;
+}
+function bitsetFromIndexList(indexList, numElements) {
+  const len = (numElements + 31) >>> 5;
+  const b = new Uint32Array(len);
+  for (const i of indexList) b[i >>> 5] |= 1 << (i & 31);
+  return b;
+}
+function popcountBitset(b) {
+  let c = 0;
+  for (let i = 0; i < b.length; i++) c += popcount32(b[i]);
+  return c;
+}
+function popcountAndNot(a, b) {
+  let c = 0;
+  for (let i = 0; i < a.length; i++) c += popcount32(a[i] & ~b[i]);
+  return c;
+}
+function bitsetOrInto(dest, src) {
+  for (let i = 0; i < dest.length; i++) dest[i] |= src[i];
+}
+
 // Burnside 式去重：按「覆盖集合」分类，只保留每类一个代表元
 // 返回 { uniqueGroups, uniqueCoverage, originalCount, uniqueCount }
 function deduplicateByCoverage(allKGroups, coverageIndexes) {
@@ -136,40 +176,38 @@ function deduplicateByCoverage(allKGroups, coverageIndexes) {
   };
 }
 
-// 贪心算法：找最少组数（近似解），内部用覆盖下标加速 + Burnside 去重
+// 贪心算法：找最少组数（近似解），Burnside 去重 + 位图加速内层
 function greedySetCover(nSamples, k, j, s, atLeast = 1) {
   const allKGroupsRaw = generateCombinations(nSamples, k);
   const allJCombinations = generateCombinations(nSamples, j);
   const coverageIndexesRaw = buildCoverageIndexes(allKGroupsRaw, allJCombinations, j, s, atLeast);
   
-  // Burnside 去重：只考虑本质不同的 k 组
   const { uniqueGroups, uniqueCoverage } = deduplicateByCoverage(allKGroupsRaw, coverageIndexesRaw);
+  const numJ = allJCombinations.length;
 
+  const coverageBits = uniqueCoverage.map(list => bitsetFromIndexList(list, numJ));
+  const coveredBits = new Uint32Array((numJ + 31) >>> 5);
   const selected = [];
-  const selectedIdx = new Set(); // 已选组的下标
-  const covered = new Set();
+  const selectedIdx = new Set();
 
-  while (covered.size < allJCombinations.length) {
+  while (popcountBitset(coveredBits) < numJ) {
     let bestIdx = -1;
-    let bestNewCoverage = 0;
+    let bestNew = 0;
 
     for (let g = 0; g < uniqueGroups.length; g++) {
       if (selectedIdx.has(g)) continue;
-      let newCov = 0;
-      for (const jIdx of uniqueCoverage[g]) {
-        if (!covered.has(jIdx)) newCov++;
-      }
-      if (newCov > bestNewCoverage) {
-        bestNewCoverage = newCov;
+      const newCov = popcountAndNot(coverageBits[g], coveredBits);
+      if (newCov > bestNew) {
+        bestNew = newCov;
         bestIdx = g;
       }
     }
 
-    if (bestIdx < 0 || bestNewCoverage === 0) break;
+    if (bestIdx < 0 || bestNew === 0) break;
 
     selected.push(uniqueGroups[bestIdx]);
     selectedIdx.add(bestIdx);
-    for (const jIdx of uniqueCoverage[bestIdx]) covered.add(jIdx);
+    bitsetOrInto(coveredBits, coverageBits[bestIdx]);
   }
 
   return selected;

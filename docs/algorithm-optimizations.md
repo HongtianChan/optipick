@@ -58,6 +58,22 @@
 
 **效果**：当多个 k 组覆盖能力相同时，避免重复搜索等价分支，加速贪心与回溯。
 
+### 5. 贪心内层位图化（Bitset Greedy）
+
+**思路**：用 Uint32Array 表示「已覆盖的 j 组合」与「每组覆盖的 j 组合」，每轮用 `popcount(groupBits & ~coveredBits)` 算新增覆盖数，用 `coveredBits |= groupBits` 更新。
+
+- 每轮选组：由「遍历每组、对每组遍历其覆盖列表并查 Set」改为「遍历每组、做一次按位与和 popcount」。
+- 实现：`bitsetFromIndexList`、`popcountBitset`、`popcountAndNot`、`bitsetOrInto`；贪心循环用位图维护 covered 与选组。
+
+**效果**：n=15 时贪心轮从数十秒级降到秒级，整体（含 buildCoverageIndexes）约 47s → 20s。
+
+### 6. 覆盖检查早退（j≠s, atLeast=1）
+
+**思路**：当 `j !== s` 且 `atLeast === 1` 时，只需判断「交集是否 ≥ s」，不必算完整交集大小。
+
+- `intersectionAtLeastWithSet(kGroupSet, jCombination, s)`：在遍历 j 组合时，一旦计数达到 s 即返回 true。
+- 在 `buildCoverageIndexes` 的热路径中调用，减少一次 has 与比较。
+
 ---
 
 ## 三、小结
@@ -66,7 +82,9 @@
 |----------------|------------------------------|
 | 覆盖预计算     | 贪心、回溯共用，少算覆盖关系 |
 | Burnside 去重  | 只保留本质不同的 k 组，缩小搜索空间 |
-| 贪心用下标集合 | 每轮 O(候选组×该组覆盖数)    |
+| 贪心位图       | 每轮 O(候选组×字长) 的 popcount，替代 Set 查表 |
+| 覆盖检查早退   | j≠s 且 atLeast=1 时达到 s 即返回 |
+| 贪心用下标集合 | （小规模或非位图路径）每轮 O(候选组×该组覆盖数) |
 | 冗余移除       | 贪心解后处理，减少组数       |
 | 贪心作上界     | 回溯起始 bestCount 更小      |
 | k 组按覆盖排序 | 回溯优先进“好”分支           |
