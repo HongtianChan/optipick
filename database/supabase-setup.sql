@@ -22,11 +22,26 @@ CREATE INDEX IF NOT EXISTS idx_results_params ON results(m, n, k, j, s);
 CREATE INDEX IF NOT EXISTS idx_results_created_at ON results(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_results_file_name ON results(file_name);
 
--- 启用 Row Level Security (RLS)
 ALTER TABLE results ENABLE ROW LEVEL SECURITY;
 
--- 创建策略：允许所有人读取和写入（可根据需要调整）
-CREATE POLICY "Allow all operations" ON results
-  FOR ALL
-  USING (true)
-  WITH CHECK (true);
+-- 删除旧的全开放策略（如果存在）
+DROP POLICY IF EXISTS "Allow all operations" ON results;
+
+-- 允许所有人读取（公开只读）
+CREATE POLICY "Public read access" ON results
+  FOR SELECT
+  USING (true);
+
+-- 只允许已认证用户写入 / 更新 / 删除
+CREATE POLICY "Authenticated users can insert" ON results
+  FOR INSERT
+  WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY "Authenticated users can update" ON results
+  FOR UPDATE
+  USING (auth.role() = 'authenticated')
+  WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY "Authenticated users can delete" ON results
+  FOR DELETE
+  USING (auth.role() = 'authenticated');
