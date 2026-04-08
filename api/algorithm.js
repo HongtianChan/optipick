@@ -112,6 +112,43 @@ function coversRequirement(kGroup, jCombination, j, s, atLeast = 1, kGroupSet = 
 // 预计算：每个 k 组覆盖的 j 组合下标列表（用于加速贪心 + 启发式排序）
 // 预计算每个 k 组的 Set，避免内层 25M 次 new Set
 function buildCoverageIndexes(allKGroups, allJCombinations, j, s, atLeast) {
+  // Fast path for common heavy case: j = k and s = k - 1 with atLeast=1
+  // Coverage condition becomes intersection >= k-1. We can build neighbors
+  // combinatorially instead of O(|K|*|J|) pair checks.
+  if (atLeast === 1 && allKGroups.length > 0 && allJCombinations.length > 0) {
+    const kSize = allKGroups[0].length;
+    if (j === kSize && s === kSize - 1) {
+      const keyToIndex = new Map();
+      for (let i = 0; i < allJCombinations.length; i++) {
+        keyToIndex.set(allJCombinations[i].join(','), i);
+      }
+
+      const universe = [...new Set(allKGroups.flat())].sort((a, b) => a - b);
+      const indexes = [];
+
+      for (let g = 0; g < allKGroups.length; g++) {
+        const group = allKGroups[g];
+        const gSet = new Set(group);
+        const covered = new Set();
+
+        const selfIdx = keyToIndex.get(group.join(','));
+        if (selfIdx != null) covered.add(selfIdx);
+
+        for (let dropPos = 0; dropPos < group.length; dropPos++) {
+          const base = group.slice(0, dropPos).concat(group.slice(dropPos + 1));
+          for (const addVal of universe) {
+            if (gSet.has(addVal)) continue;
+            const neighbor = [...base, addVal].sort((a, b) => a - b);
+            const nIdx = keyToIndex.get(neighbor.join(','));
+            if (nIdx != null) covered.add(nIdx);
+          }
+        }
+        indexes.push([...covered]);
+      }
+      return indexes;
+    }
+  }
+
   const kGroupSets = allKGroups.map(g => new Set(g));
   const indexes = [];
   for (let g = 0; g < allKGroups.length; g++) {
@@ -304,16 +341,20 @@ function solveOptimalSamples(m, n, k, j, s, atLeast = 1, randomSamples = null) {
   }
   
   const totalKGroups = combination(n, k);
-  const useExact = totalKGroups <= 100;
+  const EXACT_THRESHOLD = 300;
+  const REDUNDANT_REMOVAL_THRESHOLD = 2000;
+  const useExact = totalKGroups <= EXACT_THRESHOLD;
 
   let result;
   if (useExact) {
     result = backtrackSetCover(nSamples, k, j, s, atLeast);
   } else {
     result = greedySetCover(nSamples, k, j, s, atLeast);
-    // 分层：贪心后再做一层冗余移除，往往能减少组数
-    const allJ = generateCombinations(nSamples, j);
-    result = removeRedundantGroups(result, allJ, j, s, atLeast);
+    // For very large search spaces, skip expensive post-pass to keep runtime bounded.
+    if (totalKGroups <= REDUNDANT_REMOVAL_THRESHOLD) {
+      const allJ = generateCombinations(nSamples, j);
+      result = removeRedundantGroups(result, allJ, j, s, atLeast);
+    }
   }
 
   return {
