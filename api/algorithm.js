@@ -214,7 +214,8 @@ function deduplicateByCoverage(allKGroups, coverageIndexes) {
 }
 
 // 贪心算法：找最少组数（近似解），Burnside 去重 + 位图加速内层
-function greedySetCover(nSamples, k, j, s, atLeast = 1) {
+function greedySetCover(nSamples, k, j, s, atLeast = 1, timeLimitMs = 4000) {
+  const startTime = Date.now();
   const allKGroupsRaw = generateCombinations(nSamples, k);
   const allJCombinations = generateCombinations(nSamples, j);
   const coverageIndexesRaw = buildCoverageIndexes(allKGroupsRaw, allJCombinations, j, s, atLeast);
@@ -223,31 +224,47 @@ function greedySetCover(nSamples, k, j, s, atLeast = 1) {
   const numJ = allJCombinations.length;
 
   const coverageBits = uniqueCoverage.map(list => bitsetFromIndexList(list, numJ));
-  const coveredBits = new Uint32Array((numJ + 31) >>> 5);
-  const selected = [];
-  const selectedIdx = new Set();
 
-  while (popcountBitset(coveredBits) < numJ) {
-    let bestIdx = -1;
-    let bestNew = 0;
+  // GRASP: Greedy Randomized Adaptive Search Procedure
+  // We run multiple iterations of randomized greedy to escape local optima
+  let globalBest = null;
 
-    for (let g = 0; g < uniqueGroups.length; g++) {
-      if (selectedIdx.has(g)) continue;
-      const newCov = popcountAndNot(coverageBits[g], coveredBits);
-      if (newCov > bestNew) {
-        bestNew = newCov;
-        bestIdx = g;
+  while (Date.now() - startTime < timeLimitMs) {
+    const coveredBits = new Uint32Array((numJ + 31) >>> 5);
+    const selected = [];
+    const selectedIdx = new Set();
+
+    while (popcountBitset(coveredBits) < numJ) {
+      let candidates = [];
+      let maxNewCov = 0;
+
+      for (let g = 0; g < uniqueGroups.length; g++) {
+        if (selectedIdx.has(g)) continue;
+        const newCov = popcountAndNot(coverageBits[g], coveredBits);
+        if (newCov > maxNewCov) {
+          maxNewCov = newCov;
+          candidates = [g];
+        } else if (newCov === maxNewCov && newCov > 0) {
+          candidates.push(g);
+        }
       }
+
+      if (candidates.length === 0) break;
+
+      // Randomly pick from the best candidates to add variance
+      const chosenIdx = candidates[Math.floor(Math.random() * candidates.length)];
+      
+      selected.push(uniqueGroups[chosenIdx]);
+      selectedIdx.add(chosenIdx);
+      bitsetOrInto(coveredBits, coverageBits[chosenIdx]);
     }
 
-    if (bestIdx < 0 || bestNew === 0) break;
-
-    selected.push(uniqueGroups[bestIdx]);
-    selectedIdx.add(bestIdx);
-    bitsetOrInto(coveredBits, coverageBits[bestIdx]);
+    if (!globalBest || selected.length < globalBest.length) {
+      globalBest = selected;
+    }
   }
 
-  return selected;
+  return globalBest || [];
 }
 
 // 分层：贪心解的后处理——移除冗余组（若某组覆盖的 j 组合均已被其他已选组覆盖则可删）
@@ -342,26 +359,26 @@ function solveOptimalSamples(m, n, k, j, s, atLeast = 1, randomSamples = null) {
   
   const totalKGroups = combination(n, k);
   const EXACT_THRESHOLD = 300;
-  const REDUNDANT_REMOVAL_THRESHOLD = 2000;
   const useExact = totalKGroups <= EXACT_THRESHOLD;
 
   let result;
+  let methodName;
   if (useExact) {
     result = backtrackSetCover(nSamples, k, j, s, atLeast);
+    methodName = 'backtrack';
   } else {
-    result = greedySetCover(nSamples, k, j, s, atLeast);
-    // For very large search spaces, skip expensive post-pass to keep runtime bounded.
-    if (totalKGroups <= REDUNDANT_REMOVAL_THRESHOLD) {
-      const allJ = generateCombinations(nSamples, j);
-      result = removeRedundantGroups(result, allJ, j, s, atLeast);
-    }
+    // GRASP with 3.5s time limit to fit safely within Vercel's 10s limit
+    result = greedySetCover(nSamples, k, j, s, atLeast, 3500);
+    const allJ = generateCombinations(nSamples, j);
+    result = removeRedundantGroups(result, allJ, j, s, atLeast);
+    methodName = 'grasp';
   }
 
   return {
     samples: nSamples,
     groups: result,
     count: result.length,
-    method: useExact ? 'backtrack' : 'greedy'
+    method: methodName
   };
 }
 
