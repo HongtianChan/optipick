@@ -312,6 +312,33 @@
       text-decoration: none !important;
       font-weight: 500;
     }
+    .progress-wrap {
+      margin-top: 12px;
+      width: 100%;
+      max-width: 420px;
+      margin-left: auto;
+      margin-right: auto;
+      display: none;
+    }
+    .progress-wrap.show { display: block; }
+    .progress-track {
+      height: 8px;
+      background: var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--success));
+      transition: width 0.22s ease;
+    }
+    .progress-text {
+      margin-top: 6px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
     
     .text-area {
       width: 100%;
@@ -648,6 +675,10 @@
           <button type="button" id="btn-store" onclick="store()" disabled>Save to history</button>
           <button type="button" onclick="clearAll()">Clear all</button>
         </div>
+        <div id="calc-progress" class="progress-wrap">
+          <div class="progress-track"><div id="calc-progress-bar" class="progress-bar"></div></div>
+          <div id="calc-progress-text" class="progress-text">Preparing...</div>
+        </div>
       </div>
       
       <div class="card">
@@ -717,6 +748,8 @@
     let currentResult = null;
     let selectedFile = null;
     let toastTimer = null;
+    let progressTimer = null;
+    let progressValue = 0;
 
     function showToast(message, type, duration) {
       var el = document.getElementById('toast');
@@ -797,6 +830,39 @@
       let r = 1;
       for (let i = 0; i < k; i++) r = r * (n - i) / (i + 1);
       return Math.round(r);
+    }
+
+    function startProgress() {
+      const wrap = document.getElementById('calc-progress');
+      const bar = document.getElementById('calc-progress-bar');
+      const txt = document.getElementById('calc-progress-text');
+      if (!wrap || !bar || !txt) return;
+      progressValue = 8;
+      wrap.classList.add('show');
+      bar.style.width = progressValue + '%';
+      txt.textContent = 'Calculating...';
+      if (progressTimer) clearInterval(progressTimer);
+      progressTimer = setInterval(function() {
+        if (progressValue < 92) {
+          progressValue += Math.random() < 0.7 ? 4 : 2;
+          if (progressValue > 92) progressValue = 92;
+          bar.style.width = progressValue + '%';
+        }
+      }, 260);
+    }
+
+    function stopProgress(success, secondsText) {
+      const wrap = document.getElementById('calc-progress');
+      const bar = document.getElementById('calc-progress-bar');
+      const txt = document.getElementById('calc-progress-text');
+      if (!wrap || !bar || !txt) return;
+      if (progressTimer) clearInterval(progressTimer);
+      progressTimer = null;
+      bar.style.width = success ? '100%' : Math.max(progressValue, 20) + '%';
+      txt.textContent = success ? ('Done in ' + secondsText + 's') : 'Failed';
+      setTimeout(function() {
+        wrap.classList.remove('show');
+      }, success ? 900 : 1200);
     }
     
     function updateSearchSpaceTip() {
@@ -950,6 +1016,7 @@
       var prevText = btn ? btn.textContent : '';
       if (btn) { btn.disabled = true; btn.textContent = 'Calculating…'; }
       document.getElementById('results').value = 'Calculating…';
+      startProgress();
       document.getElementById('results-meta').classList.remove('show');
       var btnStore = document.getElementById('btn-store');
       if (btnStore) {
@@ -966,7 +1033,16 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ m: m, n: n, k: k, j: j, s: s, atLeast: atLeast, samples: samples, save: false })
         });
-        var result = await response.json();
+        var raw = await response.text();
+        var result = null;
+        try {
+          result = JSON.parse(raw);
+        } catch (_) {
+          throw new Error('Server returned non-JSON response. Please check deployment/auth status.');
+        }
+        if (!response.ok) {
+          throw new Error(result && result.error ? result.error : ('HTTP ' + response.status));
+        }
         if (result.error) {
           showError(result.error);
           document.getElementById('results').value = '';
@@ -983,20 +1059,22 @@
         
         if (result.method === 'backtrack') {
           titleEl.textContent = 'Exact Optimal Solution Found (' + result.count + ' groups)';
-          descEl.textContent = 'Search space was small enough to use Backtracking. This is mathematically guaranteed to be the minimum.';
+          descEl.textContent = 'Search space was small enough to use Backtracking. Guaranteed minimum. Time: ' + result.calculationTime + 's.';
         } else {
           titleEl.textContent = 'Near-Optimal Solution Found (' + result.count + ' groups)';
-          descEl.textContent = 'Search space was large, so Greedy Approximation was used. Fast and highly effective, but not guaranteed absolute minimum.';
+          descEl.textContent = 'Search space was large, so Greedy Approximation was used. Fast and near-optimal. Time: ' + result.calculationTime + 's.';
         }
         metaEl.classList.add('show');
         
         document.getElementById('results').value = groupsText;
         document.getElementById('filename').textContent = '';
         document.getElementById('btn-store').disabled = false;
+        stopProgress(true, result.calculationTime);
         showToast('Calculation finished', 'success');
       } catch (err) {
         showError('Calculation failed: ' + (err.message || 'Network error'));
         document.getElementById('results').value = '';
+        stopProgress(false, '');
         showToast('Calculation failed', 'error');
       } finally {
         if (btn) { btn.disabled = false; btn.textContent = prevText; }
@@ -1031,7 +1109,16 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ m: m, n: n, k: k, j: j, s: s, atLeast: atLeast, samples: samples, save: true })
         });
-        var result = await response.json();
+        var raw = await response.text();
+        var result = null;
+        try {
+          result = JSON.parse(raw);
+        } catch (_) {
+          throw new Error('Server returned non-JSON response. Please check deployment/auth status.');
+        }
+        if (!response.ok) {
+          throw new Error(result && result.error ? result.error : ('HTTP ' + response.status));
+        }
         if (result.error) { showError(result.error); return; }
         document.getElementById('filename').textContent = result.fileName;
         hideError();
@@ -1118,7 +1205,14 @@
     async function loadFileList() {
       try {
         var response = await fetch(API_BASE + '/api/files');
-        var data = await response.json();
+        var raw = await response.text();
+        var data = null;
+        try {
+          data = JSON.parse(raw);
+        } catch (_) {
+          throw new Error('History API returned non-JSON response.');
+        }
+        if (!response.ok) throw new Error(data && data.error ? data.error : ('HTTP ' + response.status));
         var list = document.getElementById('file-list');
         list.innerHTML = '';
         if (!data.files || data.files.length === 0) {
@@ -1138,7 +1232,7 @@
           list.appendChild(div);
         });
         showToast('History loaded (' + data.files.length + ')', 'success');
-      } catch (err) { console.error(err); }
+      } catch (err) { showError('Load history failed: ' + err.message); }
     }
     
     async function displayFile() {
@@ -1149,13 +1243,20 @@
     async function showFile(fileName) {
       try {
         var response = await fetch(API_BASE + '/api/file?f=' + encodeURIComponent(fileName));
-        var data = await response.json();
+        var raw = await response.text();
+        var data = null;
+        try {
+          data = JSON.parse(raw);
+        } catch (_) {
+          throw new Error('Display API returned non-JSON response.');
+        }
+        if (!response.ok) throw new Error(data && data.error ? data.error : ('HTTP ' + response.status));
         if (data.error) return;
         document.getElementById('db-filename').textContent = fileName;
         var groupsText = data.groups.map(function(g, i) { return (i+1) + '. [' + g.join(', ') + ']'; }).join('\n');
         document.getElementById('db-results').value = 'params: m=' + data.m + ', n=' + data.n + ', k=' + data.k + ', j=' + data.j + ', s=' + data.s + '\nsamples: [' + data.samples.join(', ') + ']\ngroups: ' + data.count + '\n\n' + groupsText;
         showToast('Displayed: ' + fileName, 'success');
-      } catch (err) { console.error(err); }
+      } catch (err) { showError('Display failed: ' + err.message); }
     }
     
     async function deleteFile() {
@@ -1170,14 +1271,21 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fileName: fileName })
         });
-        var data = await response.json();
+        var raw = await response.text();
+        var data = null;
+        try {
+          data = JSON.parse(raw);
+        } catch (_) {
+          throw new Error('Delete API returned non-JSON response.');
+        }
+        if (!response.ok) throw new Error(data && data.error ? data.error : ('HTTP ' + response.status));
         if (data.error) return;
         selectedFile = null;
         document.getElementById('db-filename').textContent = '';
         document.getElementById('db-results').value = '';
         loadFileList();
         showToast('Deleted: ' + fileName, 'success');
-      } catch (err) { console.error(err); }
+      } catch (err) { showError('Delete failed: ' + err.message); }
     }
     
     async function listFiles() {
