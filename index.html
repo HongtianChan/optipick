@@ -851,6 +851,8 @@
         var result = await response.json();
         if (result.error) { showError(result.error); return; }
         document.getElementById('filename').textContent = result.fileName;
+        hideError();
+        alert('Saved to history: ' + result.fileName);
         loadFileList();
       } catch (err) { showError('Save failed: ' + err.message); }
     }

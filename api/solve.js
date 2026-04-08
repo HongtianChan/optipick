@@ -107,7 +107,17 @@ module.exports = async (req, res) => {
       if (!supabase) {
         return res.status(500).json({ error: 'Supabase not configured. Please check environment variables.' });
       }
-      fileName = await saveResult(m, n, k, j, s, result.samples, result.groups);
+      try {
+        fileName = await saveResult(m, n, k, j, s, result.samples, result.groups);
+      } catch (saveError) {
+        const msg = saveError && saveError.message ? saveError.message : '';
+        if (msg.includes('row-level security') || msg.includes('permission denied')) {
+          return res.status(500).json({
+            error: 'Save blocked by database policy (RLS). Please run latest database/supabase-setup.sql in Supabase SQL Editor.'
+          });
+        }
+        throw saveError;
+      }
     }
     
     res.status(200).json({ ...result, fileName });

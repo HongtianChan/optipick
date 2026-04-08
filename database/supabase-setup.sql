@@ -30,21 +30,25 @@ ALTER TABLE results ENABLE ROW LEVEL SECURITY;
 
 -- Drop legacy permissive policy if present
 DROP POLICY IF EXISTS "Allow all operations" ON results;
+DROP POLICY IF EXISTS "Public read access" ON results;
+DROP POLICY IF EXISTS "Authenticated users can insert" ON results;
+DROP POLICY IF EXISTS "Authenticated users can update" ON results;
+DROP POLICY IF EXISTS "Authenticated users can delete" ON results;
 
--- Public read; authenticated write
+-- Public read/write (web app currently uses anon key via serverless API)
 CREATE POLICY "Public read access" ON results
   FOR SELECT
   USING (true);
 
-CREATE POLICY "Authenticated users can insert" ON results
+CREATE POLICY "Public insert access" ON results
   FOR INSERT
-  WITH CHECK (auth.role() = 'authenticated');
+  WITH CHECK (true);
 
-CREATE POLICY "Authenticated users can update" ON results
+CREATE POLICY "Public update access" ON results
   FOR UPDATE
-  USING (auth.role() = 'authenticated')
-  WITH CHECK (auth.role() = 'authenticated');
+  USING (true)
+  WITH CHECK (true);
 
-CREATE POLICY "Authenticated users can delete" ON results
+CREATE POLICY "Public delete access" ON results
   FOR DELETE
-  USING (auth.role() = 'authenticated');
+  USING (true);
