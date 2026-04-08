@@ -1,38 +1,41 @@
--- Supabase 数据库表结构
--- 在 Supabase SQL Editor 中执行此脚本
+-- Supabase schema for Optimal Samples Selector
+-- Run this script in Supabase SQL Editor
 
--- 创建 results 表
+-- results table
 CREATE TABLE IF NOT EXISTS results (
   id BIGSERIAL PRIMARY KEY,
   file_name TEXT UNIQUE NOT NULL,
-  m INTEGER NOT NULL,
-  n INTEGER NOT NULL,
-  k INTEGER NOT NULL,
-  j INTEGER NOT NULL,
-  s INTEGER NOT NULL,
+  m INTEGER NOT NULL CHECK (m BETWEEN 45 AND 54),
+  n INTEGER NOT NULL CHECK (n BETWEEN 7 AND 25),
+  k INTEGER NOT NULL CHECK (k BETWEEN 4 AND 7),
+  j INTEGER NOT NULL CHECK (j BETWEEN 3 AND 7),
+  s INTEGER NOT NULL CHECK (s BETWEEN 3 AND 7),
   samples JSONB NOT NULL,
   groups JSONB NOT NULL,
   count INTEGER NOT NULL,
   run_count INTEGER NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  CHECK (n <= m),
+  CHECK (k <= n),
+  CHECK (j <= k),
+  CHECK (s <= j)
 );
 
--- 创建索引以提高查询性能
+-- Indexes for query performance
 CREATE INDEX IF NOT EXISTS idx_results_params ON results(m, n, k, j, s);
 CREATE INDEX IF NOT EXISTS idx_results_created_at ON results(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_results_file_name ON results(file_name);
 
 ALTER TABLE results ENABLE ROW LEVEL SECURITY;
 
--- 删除旧的全开放策略（如果存在）
+-- Drop legacy permissive policy if present
 DROP POLICY IF EXISTS "Allow all operations" ON results;
 
--- 允许所有人读取（公开只读）
+-- Public read; authenticated write
 CREATE POLICY "Public read access" ON results
   FOR SELECT
   USING (true);
 
--- 只允许已认证用户写入 / 更新 / 删除
 CREATE POLICY "Authenticated users can insert" ON results
   FOR INSERT
   WITH CHECK (auth.role() = 'authenticated');

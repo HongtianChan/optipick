@@ -9,6 +9,7 @@ Optimal samples selection system. Solves set cover problem.
 - Finds optimal sample groups (set cover problem)
 - Random or manual sample input
 - Saves results to Supabase
+- Exports DB records as JSON (for USB submission)
 - CLI tool
 - Web UI (terminal style)
 - Deployed on Vercel
@@ -68,6 +69,7 @@ node index.js web
 1. Start server: `node index.js web`
 2. Open: http://localhost:3000
 3. Enter params, choose mode, execute, save
+4. Use History tab to export DB records as JSON
 
 ## Parameters
 
@@ -77,6 +79,12 @@ node index.js web
 - **j**: j param (s <= j <= k)
 - **s**: s param (3-7)
 - **at-least**: Min s combinations to cover (default 1)
+
+Validation rules:
+- Integers only
+- `45 <= m <= 54`, `7 <= n <= 25`, `4 <= k <= 7`, `3 <= s <= 7`
+- `n <= m`, `k <= n`, `s <= j <= k`
+- Manual samples: exactly n values, unique, each in `[1, m]`
 
 ## Algorithm
 
@@ -121,3 +129,4 @@ File format: `m-n-k-j-s-x-y`
 - Frontend: HTML, CSS, JavaScript
 - Deploy: Vercel
 - CLI: Commander.js
+
