@@ -196,6 +196,18 @@
       border-color: var(--accent);
       box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
     }
+    .param-group .error-text {
+      font-size: 0.75rem;
+      color: var(--danger);
+      margin-top: 4px;
+      display: none;
+    }
+    .param-group.has-error input {
+      border-color: var(--danger);
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+    }
+    .param-group.has-error .error-text { display: block; }
+    .param-group.has-error .hint { display: none; }
     .param-group .hint {
       font-size: 0.75rem;
       color: var(--text-muted);
@@ -265,6 +277,9 @@
       box-shadow: 0 6px 20px rgba(14, 165, 233, 0.35);
     }
     .btn-calculate:disabled {
+      opacity: 0.5;
+      box-shadow: none;
+      transform: none;
       opacity: 0.7;
       cursor: not-allowed;
     }
@@ -287,6 +302,16 @@
       text-underline-offset: 3px;
     }
     .cta-secondary button:hover { color: var(--accent); }
+    .cta-secondary button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      text-decoration: none;
+    }
+    .btn-success-state {
+      color: var(--success) !important;
+      text-decoration: none !important;
+      font-weight: 500;
+    }
     
     .text-area {
       width: 100%;
@@ -329,6 +354,21 @@
       margin-bottom: 10px;
     }
     .filename { font-size: 0.75rem; color: var(--text-muted); }
+    .results-meta {
+      margin-bottom: 12px;
+      padding: 10px 14px;
+      background: #f8fafc;
+      border-radius: 8px;
+      border-left: 3px solid var(--success);
+      font-size: 0.875rem;
+      display: none;
+    }
+    html[data-theme="dark"] .results-meta {
+      background: #0f172a;
+    }
+    .results-meta.show { display: block; }
+    .results-meta-title { font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .results-meta-desc { color: var(--text-muted); font-size: 0.8125rem; }
     .btn-print {
       padding: 8px 14px;
       font-size: 0.8125rem;
@@ -449,12 +489,19 @@
       font-family: inherit;
       font-size: 0.9375rem;
       color: white;
-      background: var(--text);
+      background: #1f2937;
       border: none;
       border-radius: 8px;
       cursor: pointer;
     }
-    .modal .btn-close:hover { background: #334155; }
+    .modal .btn-close:hover { background: #111827; }
+    html[data-theme="dark"] .modal .btn-close {
+      background: #334155;
+      color: #f8fafc;
+    }
+    html[data-theme="dark"] .modal .btn-close:hover {
+      background: #1e293b;
+    }
     
     @media print {
       body { background: white; padding: 16px; }
@@ -469,6 +516,33 @@
       .print-param, .print-samples, .print-results, .print-filename { margin: 10px 0; font-size: 14px; }
     }
     .print-section { display: none; }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 1200;
+      min-width: 220px;
+      max-width: 420px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 0.875rem;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-lg);
+      background: var(--surface);
+      color: var(--text);
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .toast.info { border-left: 4px solid var(--accent); }
+    .toast.success { border-left: 4px solid var(--success); }
+    .toast.error { border-left: 4px solid var(--danger); }
     
     /* Click particle (cold palette) */
     .click-particle {
@@ -508,35 +582,42 @@
             <label>m (total samples)</label>
             <input type="number" id="param-m" min="45" max="54" value="45">
             <span class="hint">45–54</span>
+            <span class="error-text"></span>
           </div>
           <div class="param-group">
             <label>n (select count)</label>
             <input type="number" id="param-n" min="7" max="25" value="8">
             <span class="hint">7–25</span>
+            <span class="error-text"></span>
           </div>
           <div class="param-group">
             <label>K (group size)</label>
             <input type="number" id="param-k" min="4" max="7" value="6">
             <span class="hint">4–7</span>
+            <span class="error-text"></span>
           </div>
           <div class="param-group">
             <label>j</label>
             <input type="number" id="param-j" min="3" max="7" value="6">
             <span class="hint">S ≤ j ≤ K</span>
+            <span class="error-text"></span>
           </div>
           <div class="param-group">
             <label>S</label>
             <input type="number" id="param-s" min="3" max="7" value="5">
             <span class="hint">3–7</span>
+            <span class="error-text"></span>
           </div>
           <div class="param-group">
             <label>at least</label>
             <input type="number" id="param-atleast" min="1" value="1">
             <span class="hint">min coverage</span>
+            <span class="error-text"></span>
           </div>
         </div>
         <div class="search-space-tip" id="search-space-tip">
-          Search space C(n,k): <span id="search-space-value"></span> ≤100 → exact; &gt;100 → approximate.
+          Search space C(n,k) = <span id="search-space-value"></span>
+          <span id="search-space-desc" style="display:block; margin-top:4px; font-size:0.75rem; opacity:0.8;"></span>
         </div>
       </div>
       
@@ -564,7 +645,7 @@
       <div class="cta-block">
         <button class="btn-calculate" id="btn-execute" onclick="execute()">Calculate</button>
         <div class="cta-secondary">
-          <button type="button" onclick="store()">Save to history</button>
+          <button type="button" id="btn-store" onclick="store()" disabled>Save to history</button>
           <button type="button" onclick="clearAll()">Clear all</button>
         </div>
       </div>
@@ -580,7 +661,10 @@
           <div class="card-title">Results</div>
           <div id="filename" class="filename"></div>
         </div>
-        <p class="card-desc">Each row is one k-group; together they cover all required s-subsets.</p>
+        <div id="results-meta" class="results-meta">
+          <div class="results-meta-title" id="meta-title"></div>
+          <div class="results-meta-desc" id="meta-desc"></div>
+        </div>
         <textarea id="results" class="text-area" readonly placeholder="Run Calculate to see minimum groups and group contents"></textarea>
         <div style="margin-top: 12px;">
           <button type="button" class="btn-print" onclick="printResults()">Print</button>
@@ -626,11 +710,25 @@
   </div>
   
   <div id="terminal-output" class="hidden" aria-hidden="true"></div>
+  <div id="toast" class="toast info" role="status" aria-live="polite"></div>
   
   <script>
     const API_BASE = '';
     let currentResult = null;
     let selectedFile = null;
+    let toastTimer = null;
+
+    function showToast(message, type, duration) {
+      var el = document.getElementById('toast');
+      if (!el) return;
+      el.textContent = message;
+      el.className = 'toast ' + (type || 'info');
+      el.classList.add('show');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(function() {
+        el.classList.remove('show');
+      }, duration || 1800);
+    }
     
     function getTheme() {
       return localStorage.getItem('optipick-theme') || 'light';
@@ -703,14 +801,61 @@
     
     function updateSearchSpaceTip() {
       const el = document.getElementById('search-space-value');
+      const descEl = document.getElementById('search-space-desc');
       if (!el) return;
       const n = parseInt(document.getElementById('param-n').value, 10);
       const k = parseInt(document.getElementById('param-k').value, 10);
-      if (isNaN(n) || isNaN(k) || k > n) { el.textContent = ''; return; }
+      if (isNaN(n) || isNaN(k) || k > n) { 
+        el.textContent = 'Invalid'; 
+        if(descEl) descEl.textContent = 'Check n and K values';
+        return; 
+      }
       const c = combinationDisplay(n, k);
-      el.textContent = 'C(' + n + ',' + k + ')=' + c + '. ';
+      el.textContent = c;
+      if (descEl) {
+        if (c <= 100) {
+          descEl.textContent = 'Small space. Will use Exact Backtracking (Guaranteed optimal).';
+        } else {
+          descEl.textContent = 'Large space. Will use Greedy Approximation (Fast, near-optimal).';
+        }
+      }
     }
     
+    function validateParamsLive() {
+      let isValid = true;
+      const m = parseInt(document.getElementById('param-m').value, 10);
+      const n = parseInt(document.getElementById('param-n').value, 10);
+      const k = parseInt(document.getElementById('param-k').value, 10);
+      const j = parseInt(document.getElementById('param-j').value, 10);
+      const s = parseInt(document.getElementById('param-s').value, 10);
+
+      function setError(id, msg) {
+        const group = document.getElementById('param-' + id).closest('.param-group');
+        group.classList.add('has-error');
+        group.querySelector('.error-text').textContent = msg;
+        isValid = false;
+      }
+      function clearError(id) {
+        const group = document.getElementById('param-' + id).closest('.param-group');
+        group.classList.remove('has-error');
+      }
+
+      ['m','n','k','j','s'].forEach(clearError);
+
+      if (m < 45 || m > 54) setError('m', 'Must be 45-54');
+      if (n < 7 || n > 25) setError('n', 'Must be 7-25');
+      if (k < 4 || k > 7) setError('k', 'Must be 4-7');
+      if (s < 3 || s > 7) setError('s', 'Must be 3-7');
+      
+      if (n > m) setError('n', 'n ≤ m required');
+      if (k > n) setError('k', 'K ≤ n required');
+      if (j > k) setError('j', 'j ≤ K required');
+      if (j < s) setError('j', 'j ≥ S required');
+      
+      document.getElementById('btn-execute').disabled = !isValid;
+      return isValid;
+    }
+
     function initUserInputs() {
       const n = parseInt(document.getElementById('param-n').value, 10) || 8;
       const grid = document.getElementById('user-input-grid');
@@ -727,10 +872,25 @@
       }
     }
     
-    document.getElementById('param-n').addEventListener('input', function() { initUserInputs(); updateSearchSpaceTip(); });
-    document.getElementById('param-k').addEventListener('input', updateSearchSpaceTip);
+    ['m','n','k','j','s'].forEach(id => {
+      document.getElementById('param-' + id).addEventListener('input', function() {
+        validateParamsLive();
+        if(id === 'n' || id === 'k') updateSearchSpaceTip();
+        if(id === 'n') initUserInputs();
+        
+        // Reset store button state if params change
+        var btnStore = document.getElementById('btn-store');
+        if (btnStore) {
+          btnStore.disabled = true;
+          btnStore.textContent = 'Save to history';
+          btnStore.classList.remove('btn-success-state');
+        }
+      });
+    });
+
     initUserInputs();
     updateSearchSpaceTip();
+    validateParamsLive();
     
     function toggleInputMode() {
       const mode = document.querySelector('input[name="mode"]:checked');
@@ -770,14 +930,7 @@
       var modeEl = document.querySelector('input[name="mode"]:checked');
       var mode = modeEl ? modeEl.value : 'random';
       
-      if (!m || !n || !k || !j || !s) {
-        showError('Please fill in all parameters');
-        return;
-      }
-      if (j < s || j > k) {
-        showError('j must be between ' + s + ' and ' + k);
-        return;
-      }
+      if (!validateParamsLive()) return;
       var samples = null;
       if (mode === 'input') {
         samples = [];
@@ -787,6 +940,7 @@
         }
         if (samples.length !== n) {
           showError('Please enter ' + n + ' samples');
+          showToast('Please enter all manual samples', 'error');
           return;
         }
       }
@@ -796,6 +950,14 @@
       var prevText = btn ? btn.textContent : '';
       if (btn) { btn.disabled = true; btn.textContent = 'Calculating…'; }
       document.getElementById('results').value = 'Calculating…';
+      document.getElementById('results-meta').classList.remove('show');
+      var btnStore = document.getElementById('btn-store');
+      if (btnStore) {
+        btnStore.disabled = true;
+        btnStore.textContent = 'Save to history';
+        btnStore.classList.remove('btn-success-state');
+      }
+      showToast('Calculating, please wait...', 'info', 2200);
       var startTime = performance.now();
       
       try {
@@ -815,18 +977,39 @@
         currentResult = result;
         document.getElementById('values-input').value = result.samples.map(function(v, idx) { return (idx + 1) + 'st # ' + v; }).join('\n');
         var groupsText = result.groups.map(function(group, idx) { return (idx + 1) + '. [' + group.join(', ') + ']'; }).join('\n');
-        document.getElementById('results').value = 'algorithm: ' + (result.method === 'backtrack' ? 'backtrack (exact)' : 'greedy (approximate)') + '\nmin groups: ' + result.count + '\n\n' + groupsText;
+        var metaEl = document.getElementById('results-meta');
+        var titleEl = document.getElementById('meta-title');
+        var descEl = document.getElementById('meta-desc');
+        
+        if (result.method === 'backtrack') {
+          titleEl.textContent = 'Exact Optimal Solution Found (' + result.count + ' groups)';
+          descEl.textContent = 'Search space was small enough to use Backtracking. This is mathematically guaranteed to be the minimum.';
+        } else {
+          titleEl.textContent = 'Near-Optimal Solution Found (' + result.count + ' groups)';
+          descEl.textContent = 'Search space was large, so Greedy Approximation was used. Fast and highly effective, but not guaranteed absolute minimum.';
+        }
+        metaEl.classList.add('show');
+        
+        document.getElementById('results').value = groupsText;
         document.getElementById('filename').textContent = '';
+        document.getElementById('btn-store').disabled = false;
+        showToast('Calculation finished', 'success');
       } catch (err) {
         showError('Calculation failed: ' + (err.message || 'Network error'));
         document.getElementById('results').value = '';
+        showToast('Calculation failed', 'error');
       } finally {
         if (btn) { btn.disabled = false; btn.textContent = prevText; }
       }
     }
     
     async function store() {
-      if (!currentResult) { showError('Run a calculation first'); return; }
+      if (!currentResult) { showError('Run a calculation first'); showToast('Run Calculate first', 'error'); return; }
+      
+      var btn = document.getElementById('btn-store');
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+      
       var m = parseInt(document.getElementById('param-m').value, 10);
       var n = parseInt(document.getElementById('param-n').value, 10);
       var k = parseInt(document.getElementById('param-k').value, 10);
@@ -852,9 +1035,17 @@
         if (result.error) { showError(result.error); return; }
         document.getElementById('filename').textContent = result.fileName;
         hideError();
-        alert('Saved to history: ' + result.fileName);
+        
+        btn.textContent = 'Saved ✓';
+        btn.classList.add('btn-success-state');
+        showToast('Saved: ' + result.fileName, 'success', 2400);
         loadFileList();
-      } catch (err) { showError('Save failed: ' + err.message); }
+      } catch (err) { 
+        showError('Save failed: ' + err.message); 
+        showToast('Save failed', 'error'); 
+        btn.disabled = false;
+        btn.textContent = 'Save to history';
+      }
     }
     
     function clearAll() {
@@ -866,17 +1057,27 @@
       document.getElementById('param-atleast').value = '1';
       document.getElementById('values-input').value = '';
       document.getElementById('results').value = '';
+      document.getElementById('results-meta').classList.remove('show');
       document.getElementById('filename').textContent = '';
       currentResult = null;
       for (var i = 1; i <= 25; i++) {
         var inp = document.getElementById('user-input-' + i);
         if (inp) inp.value = '';
       }
+      var btnStore = document.getElementById('btn-store');
+      if (btnStore) {
+        btnStore.disabled = true;
+        btnStore.textContent = 'Save to history';
+        btnStore.classList.remove('btn-success-state');
+      }
+      validateParamsLive();
       hideError();
+      showToast('Form cleared', 'info');
     }
     
     function printResults() {
       if (!currentResult) return;
+      showToast('Preparing print view...', 'info');
       var m = parseInt(document.getElementById('param-m').value, 10);
       var n = parseInt(document.getElementById('param-n').value, 10);
       var k = parseInt(document.getElementById('param-k').value, 10);
@@ -905,10 +1106,12 @@
       if (tab === 'main') {
         document.querySelectorAll('.tab')[0].classList.add('active');
         document.getElementById('main-tab').classList.remove('hidden');
+        showToast('Switched to Calculate', 'info');
       } else {
         document.querySelectorAll('.tab')[1].classList.add('active');
         document.getElementById('database-tab').classList.remove('hidden');
         loadFileList();
+        showToast('Switched to History', 'info');
       }
     }
     
@@ -920,6 +1123,7 @@
         list.innerHTML = '';
         if (!data.files || data.files.length === 0) {
           list.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text-muted);">No saved results yet.</div>';
+          showToast('No saved results yet', 'info');
           return;
         }
         data.files.forEach(function(file) {
@@ -933,6 +1137,7 @@
           };
           list.appendChild(div);
         });
+        showToast('History loaded (' + data.files.length + ')', 'success');
       } catch (err) { console.error(err); }
     }
     
@@ -949,6 +1154,7 @@
         document.getElementById('db-filename').textContent = fileName;
         var groupsText = data.groups.map(function(g, i) { return (i+1) + '. [' + g.join(', ') + ']'; }).join('\n');
         document.getElementById('db-results').value = 'params: m=' + data.m + ', n=' + data.n + ', k=' + data.k + ', j=' + data.j + ', s=' + data.s + '\nsamples: [' + data.samples.join(', ') + ']\ngroups: ' + data.count + '\n\n' + groupsText;
+        showToast('Displayed: ' + fileName, 'success');
       } catch (err) { console.error(err); }
     }
     
@@ -970,6 +1176,7 @@
         document.getElementById('db-filename').textContent = '';
         document.getElementById('db-results').value = '';
         loadFileList();
+        showToast('Deleted: ' + fileName, 'success');
       } catch (err) { console.error(err); }
     }
     
@@ -1009,6 +1216,7 @@
       var dbResults = document.getElementById('db-results').value;
       var dbFilename = document.getElementById('db-filename').textContent;
       if (!dbResults) return;
+      showToast('Preparing print view...', 'info');
       var lines = dbResults.split('\n');
       var params = {}, samples = [], groups = [], count = 0;
       lines.forEach(function(line) {
@@ -1044,6 +1252,7 @@
     function showError(message) {
       var el = document.getElementById('error-message');
       if (el) { el.textContent = message; el.classList.remove('hidden'); }
+      showToast(message, 'error', 2600);
     }
     function hideError() {
       var el = document.getElementById('error-message');
