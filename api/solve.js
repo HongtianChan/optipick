@@ -111,6 +111,11 @@ module.exports = async (req, res) => {
         fileName = await saveResult(m, n, k, j, s, result.samples, result.groups);
       } catch (saveError) {
         const msg = saveError && saveError.message ? saveError.message : '';
+        if (msg.includes('fetch failed')) {
+          return res.status(500).json({
+            error: 'Cannot reach Supabase from server. Please verify SUPABASE_URL and SUPABASE_ANON_KEY in Vercel Environment Variables.'
+          });
+        }
         if (msg.includes('row-level security') || msg.includes('permission denied')) {
           return res.status(500).json({
             error: 'Save blocked by database policy (RLS). Please run latest database/supabase-setup.sql in Supabase SQL Editor.'
