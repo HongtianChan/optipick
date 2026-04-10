@@ -24,6 +24,11 @@
       --shadow: 0 1px 3px rgba(0,0,0,.08);
       --shadow-lg: 0 10px 40px -10px rgba(0,0,0,.12);
     }
+    /* Match page chrome on overscroll / iOS rubber-band (defaults html canvas to white otherwise) */
+    html {
+      background: var(--bg);
+      min-height: 100%;
+    }
     html[data-theme="dark"] {
       --bg: #0f172a;
       --surface: #1e293b;
@@ -43,7 +48,10 @@
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
+      min-height: 100dvh;
+      min-height: -webkit-fill-available;
       padding: 24px 16px;
+      padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
       line-height: 1.5;
     }
     
