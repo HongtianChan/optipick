@@ -117,6 +117,16 @@
       color: var(--accent);
       border-color: var(--accent);
     }
+
+    /* Narrow screens: avoid absolute actions overlapping wrapped title */
+    @media (max-width: 640px) {
+      .header-actions {
+        position: static;
+        justify-content: flex-end;
+        width: 100%;
+        margin-bottom: 12px;
+      }
+    }
     
     .tabs {
       display: flex;
