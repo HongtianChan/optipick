@@ -118,6 +118,7 @@ File format: `m-n-k-j-s-x-y`
 ## Docs
 
 - [Deployment guide](./docs/vercel-deployment-guide.md)
+- [Local offline mode](./docs/local-mode.md)
 - [Design](./docs/design.md)
 - [Project spec](./docs/project-spec/Group%20Project%20说明.md)
 - [Docs index](./docs/README.md)

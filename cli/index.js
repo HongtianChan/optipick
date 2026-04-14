@@ -3,6 +3,7 @@
 const { Command } = require('commander');
 const { solveOptimalSamples } = require('./src/algorithm');
 const { saveResult, listDbFiles, readDbFile, deleteDbFile, formatGroups } = require('./src/db');
+const toInt = (val) => Number.parseInt(val, 10);
 
 const program = new Command();
 
@@ -15,12 +16,12 @@ program
 program
   .command('solve')
   .description('计算最优样本组')
-  .requiredOption('-m <number>', '总样本数 (45-54)', parseInt)
-  .requiredOption('-n <number>', '从 m 中选的样本数 (7-25)', parseInt)
-  .requiredOption('-k <number>', '组大小 (4-7)', parseInt)
-  .requiredOption('-j <number>', 'j 参数 (s <= j <= k)', parseInt)
-  .requiredOption('-s <number>', 's 参数 (3-7)', parseInt)
-  .option('--at-least <number>', '至少覆盖的 s 组合数 (默认 1)', parseInt, 1)
+  .requiredOption('-m <number>', '总样本数 (45-54)', toInt)
+  .requiredOption('-n <number>', '从 m 中选的样本数 (7-25)', toInt)
+  .requiredOption('-k <number>', '组大小 (4-7)', toInt)
+  .requiredOption('-j <number>', 'j 参数 (s <= j <= k)', toInt)
+  .requiredOption('-s <number>', 's 参数 (3-7)', toInt)
+  .option('--at-least <number>', '至少覆盖的 s 组合数 (默认 1)', toInt, 1)
   .option('--samples <numbers>', '手动输入 n 个样本，用逗号分隔', (val) => {
     return val.split(',').map(x => parseInt(x.trim())).filter(x => !isNaN(x));
   })
@@ -137,7 +138,7 @@ program
 program
   .command('web')
   .description('启动 Web UI 服务器')
-  .option('-p <port>', '端口号', parseInt, 3000)
+  .option('-p <port>', '端口号', toInt, 3000)
   .action((options) => {
     console.log(`启动 Web UI 服务器在端口 ${options.p}...`);
     console.log(`访问 http://localhost:${options.p}`);

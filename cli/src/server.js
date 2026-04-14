@@ -53,6 +53,38 @@ function start(port = 3000) {
       res.end(JSON.stringify({ files }));
       return;
     }
+
+    if (pathname === '/api/export' && req.method === 'GET') {
+      try {
+        const files = listDbFiles();
+        const results = files.map((fileName) => {
+          const record = readDbFile(fileName);
+          return {
+            file_name: fileName,
+            m: record.m,
+            n: record.n,
+            k: record.k,
+            j: record.j,
+            s: record.s,
+            samples: record.samples,
+            groups: record.groups,
+            count: record.count,
+            run_count: Number(fileName.split('-')[5] || 1),
+            created_at: record.timestamp || null
+          };
+        });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          exportedAt: new Date().toISOString(),
+          total: results.length,
+          results
+        }));
+      } catch (error) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: error.message }));
+      }
+      return;
+    }
     
     if (pathname === '/api/file' && req.method === 'GET') {
       const fileName = parsedUrl.query.f;
@@ -90,10 +122,16 @@ function start(port = 3000) {
     
     // 静态文件
     if (pathname === '/' || pathname === '/index.html') {
-      // 优先从 web-ui 目录读取，如果没有则从 cli/web 读取
+      // Try multiple locations to support different repo layouts.
       const webUiPath = path.join(__dirname, '../../web-ui/index.html');
+      const rootIndexPath = path.join(__dirname, '../../index.html');
       const cliWebPath = path.join(__dirname, '../web/index.html');
-      const htmlPath = fs.existsSync(webUiPath) ? webUiPath : cliWebPath;
+      const htmlPath = [webUiPath, rootIndexPath, cliWebPath].find((p) => fs.existsSync(p));
+      if (!htmlPath) {
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'index.html not found for local web mode' }));
+        return;
+      }
       const html = fs.readFileSync(htmlPath, 'utf-8');
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       res.end(html);
