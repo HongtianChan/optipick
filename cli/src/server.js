@@ -5,6 +5,14 @@ const url = require('url');
 const { solveOptimalSamples } = require('./algorithm');
 const { saveResult, listDbFiles, readDbFile, deleteDbFile } = require('./db');
 
+function normalizeGroups(groups) {
+  if (!Array.isArray(groups)) throw new Error('groups must be an array');
+  return groups.map((g) => {
+    if (!Array.isArray(g) || g.length === 0) throw new Error('each group must be a non-empty array');
+    return [...g];
+  });
+}
+
 function start(port = 3000) {
   const server = http.createServer((req, res) => {
     const parsedUrl = url.parse(req.url, true);
@@ -28,17 +36,31 @@ function start(port = 3000) {
       req.on('end', () => {
         try {
           const params = JSON.parse(body);
-          const { m, n, k, j, s, atLeast = 1, samples } = params;
-          
-          const result = solveOptimalSamples(m, n, k, j, s, atLeast, samples);
+          const { m, n, k, j, s, atLeast = 1, samples, precomputed, solveMode = 'balanced' } = params;
+          const solveStart = Date.now();
+          let result;
+          if (precomputed && Array.isArray(precomputed.groups) && Array.isArray(precomputed.samples)) {
+            const normalizedGroups = normalizeGroups(precomputed.groups);
+            result = {
+              samples: precomputed.samples,
+              groups: normalizedGroups,
+              count: precomputed.count || normalizedGroups.length,
+              method: precomputed.method || 'unknown'
+            };
+          } else {
+            result = solveOptimalSamples(m, n, k, j, s, atLeast, samples, solveMode);
+          }
+          const solveMs = Date.now() - solveStart;
           
           let fileName = null;
+          const saveStart = Date.now();
           if (params.save) {
             fileName = saveResult(m, n, k, j, s, result.samples, result.groups);
           }
+          const saveMs = params.save ? Date.now() - saveStart : 0;
           
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ ...result, fileName }));
+          res.end(JSON.stringify({ ...result, fileName, timing: { solveMs, saveMs, totalMs: solveMs + saveMs } }));
         } catch (error) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: error.message }));

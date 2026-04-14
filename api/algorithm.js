@@ -118,28 +118,40 @@ function buildCoverageIndexes(allKGroups, allJCombinations, j, s, atLeast) {
   if (atLeast === 1 && allKGroups.length > 0 && allJCombinations.length > 0) {
     const kSize = allKGroups[0].length;
     if (j === kSize && s === kSize - 1) {
-      const keyToIndex = new Map();
-      for (let i = 0; i < allJCombinations.length; i++) {
-        keyToIndex.set(allJCombinations[i].join(','), i);
+      const universe = [...new Set(allKGroups.flat())].sort((a, b) => a - b);
+      const bitOf = new Map();
+      for (let i = 0; i < universe.length; i++) {
+        bitOf.set(universe[i], 1 << i);
       }
 
-      const universe = [...new Set(allKGroups.flat())].sort((a, b) => a - b);
+      const maskToIndex = new Map();
+      for (let i = 0; i < allJCombinations.length; i++) {
+        let mask = 0;
+        for (const v of allJCombinations[i]) mask |= bitOf.get(v);
+        maskToIndex.set(mask >>> 0, i);
+      }
+
+      const universeBits = universe.map((v) => bitOf.get(v));
       const indexes = [];
 
       for (let g = 0; g < allKGroups.length; g++) {
         const group = allKGroups[g];
-        const gSet = new Set(group);
+        let gMask = 0;
+        for (const v of group) gMask |= bitOf.get(v);
+        gMask >>>= 0;
+
         const covered = new Set();
 
-        const selfIdx = keyToIndex.get(group.join(','));
+        const selfIdx = maskToIndex.get(gMask);
         if (selfIdx != null) covered.add(selfIdx);
 
-        for (let dropPos = 0; dropPos < group.length; dropPos++) {
-          const base = group.slice(0, dropPos).concat(group.slice(dropPos + 1));
-          for (const addVal of universe) {
-            if (gSet.has(addVal)) continue;
-            const neighbor = [...base, addVal].sort((a, b) => a - b);
-            const nIdx = keyToIndex.get(neighbor.join(','));
+        const inBits = group.map((v) => bitOf.get(v));
+        for (const dropBit of inBits) {
+          const baseMask = (gMask & ~dropBit) >>> 0;
+          for (const addBit of universeBits) {
+            if ((gMask & addBit) !== 0) continue;
+            const nMask = (baseMask | addBit) >>> 0;
+            const nIdx = maskToIndex.get(nMask);
             if (nIdx != null) covered.add(nIdx);
           }
         }
@@ -214,16 +226,26 @@ function deduplicateByCoverage(allKGroups, coverageIndexes) {
 }
 
 // 贪心算法：找最少组数（近似解），Burnside 去重 + 位图加速内层
-function greedySetCover(nSamples, k, j, s, atLeast = 1, timeLimitMs = 4000) {
+function greedySetCover(nSamples, k, j, s, atLeast = 1, timeLimitMs = 4000, scanMode = 'auto') {
   const startTime = Date.now();
   const allKGroupsRaw = generateCombinations(nSamples, k);
   const allJCombinations = generateCombinations(nSamples, j);
   const coverageIndexesRaw = buildCoverageIndexes(allKGroupsRaw, allJCombinations, j, s, atLeast);
   
-  const { uniqueGroups, uniqueCoverage } = deduplicateByCoverage(allKGroupsRaw, coverageIndexesRaw);
+  // For very large candidate spaces, full dedup-by-coverage can dominate runtime.
+  // In that case, directly use raw candidates to keep total latency bounded.
+  const DEDUP_THRESHOLD = 12000;
+  const useDedup = allKGroupsRaw.length <= DEDUP_THRESHOLD;
+  const deduped = useDedup
+    ? deduplicateByCoverage(allKGroupsRaw, coverageIndexesRaw)
+    : { uniqueGroups: allKGroupsRaw, uniqueCoverage: coverageIndexesRaw };
+  const { uniqueGroups, uniqueCoverage } = deduped;
   const numJ = allJCombinations.length;
 
   const coverageBits = uniqueCoverage.map(list => bitsetFromIndexList(list, numJ));
+  const LARGE_CANDIDATE_THRESHOLD = 12000;
+  const useStochasticScan = scanMode === 'stochastic' || (scanMode === 'auto' && uniqueGroups.length > LARGE_CANDIDATE_THRESHOLD);
+  const STOCHASTIC_SAMPLE_SIZE = 1400;
 
   // GRASP: Greedy Randomized Adaptive Search Procedure
   // We run multiple iterations of randomized greedy to escape local optima
@@ -238,14 +260,35 @@ function greedySetCover(nSamples, k, j, s, atLeast = 1, timeLimitMs = 4000) {
       let candidates = [];
       let maxNewCov = 0;
 
-      for (let g = 0; g < uniqueGroups.length; g++) {
-        if (selectedIdx.has(g)) continue;
-        const newCov = popcountAndNot(coverageBits[g], coveredBits);
-        if (newCov > maxNewCov) {
-          maxNewCov = newCov;
-          candidates = [g];
-        } else if (newCov === maxNewCov && newCov > 0) {
-          candidates.push(g);
+      if (useStochasticScan) {
+        const seen = new Set();
+        let checked = 0;
+        let attempts = 0;
+        const maxAttempts = STOCHASTIC_SAMPLE_SIZE * 8;
+        while (checked < STOCHASTIC_SAMPLE_SIZE && attempts < maxAttempts) {
+          attempts++;
+          const g = Math.floor(Math.random() * uniqueGroups.length);
+          if (selectedIdx.has(g) || seen.has(g)) continue;
+          seen.add(g);
+          checked++;
+          const newCov = popcountAndNot(coverageBits[g], coveredBits);
+          if (newCov > maxNewCov) {
+            maxNewCov = newCov;
+            candidates = [g];
+          } else if (newCov === maxNewCov && newCov > 0) {
+            candidates.push(g);
+          }
+        }
+      } else {
+        for (let g = 0; g < uniqueGroups.length; g++) {
+          if (selectedIdx.has(g)) continue;
+          const newCov = popcountAndNot(coverageBits[g], coveredBits);
+          if (newCov > maxNewCov) {
+            maxNewCov = newCov;
+            candidates = [g];
+          } else if (newCov === maxNewCov && newCov > 0) {
+            candidates.push(g);
+          }
         }
       }
 
@@ -290,6 +333,55 @@ function removeRedundantGroups(selected, allJCombinations, j, s, atLeast) {
     if (redundant) result.splice(i, 1);
   }
   return result;
+}
+
+// Fast constructive heuristic for heavy case: j = k and s = k - 1 (atLeast = 1).
+// Instead of scanning all candidate groups each step, repeatedly pick one uncovered
+// k-combination and mark its radius-1 neighborhood as covered.
+function fastRadiusCoverHeuristic(nSamples, k) {
+  const allKGroups = generateCombinations(nSamples, k);
+  const keyToIndex = new Map();
+  for (let i = 0; i < allKGroups.length; i++) {
+    keyToIndex.set(allKGroups[i].join(','), i);
+  }
+
+  const uncovered = new Uint8Array(allKGroups.length);
+  uncovered.fill(1);
+  let uncoveredCount = allKGroups.length;
+  const selectedIndexes = [];
+  const universe = nSamples;
+
+  function markCovered(group) {
+    const gKey = group.join(',');
+    const selfIdx = keyToIndex.get(gKey);
+    if (selfIdx != null && uncovered[selfIdx]) {
+      uncovered[selfIdx] = 0;
+      uncoveredCount--;
+    }
+    const gSet = new Set(group);
+    for (let dropPos = 0; dropPos < group.length; dropPos++) {
+      const base = group.slice(0, dropPos).concat(group.slice(dropPos + 1));
+      for (const addVal of universe) {
+        if (gSet.has(addVal)) continue;
+        const neighbor = [...base, addVal].sort((a, b) => a - b);
+        const nIdx = keyToIndex.get(neighbor.join(','));
+        if (nIdx != null && uncovered[nIdx]) {
+          uncovered[nIdx] = 0;
+          uncoveredCount--;
+        }
+      }
+    }
+  }
+
+  let cursor = 0;
+  while (uncoveredCount > 0) {
+    while (cursor < uncovered.length && uncovered[cursor] === 0) cursor++;
+    if (cursor >= uncovered.length) break;
+    selectedIndexes.push(cursor);
+    markCovered(allKGroups[cursor]);
+  }
+
+  return selectedIndexes.map((idx) => allKGroups[idx]);
 }
 
 // 回溯算法：找精确最优解（小规模）
@@ -345,7 +437,7 @@ function backtrackSetCover(nSamples, k, j, s, atLeast = 1, maxGroups = Infinity)
 }
 
 // 主算法：根据规模选择回溯或贪心
-function solveOptimalSamples(m, n, k, j, s, atLeast = 1, randomSamples = null) {
+function solveOptimalSamples(m, n, k, j, s, atLeast = 1, randomSamples = null, solveMode = 'balanced') {
   // 生成 n 个样本（随机或手动）
   let nSamples;
   if (randomSamples && randomSamples.length === n) {
@@ -359,7 +451,10 @@ function solveOptimalSamples(m, n, k, j, s, atLeast = 1, randomSamples = null) {
   
   const totalKGroups = combination(n, k);
   const EXACT_THRESHOLD = 300;
+  const REDUNDANT_REMOVAL_THRESHOLD = 1500;
+  const QUALITY_REDUNDANT_REMOVAL_THRESHOLD = 20000;
   const useExact = totalKGroups <= EXACT_THRESHOLD;
+  const mode = (solveMode || 'balanced').toLowerCase();
 
   let result;
   let methodName;
@@ -367,11 +462,29 @@ function solveOptimalSamples(m, n, k, j, s, atLeast = 1, randomSamples = null) {
     result = backtrackSetCover(nSamples, k, j, s, atLeast);
     methodName = 'backtrack';
   } else {
-    // GRASP with 3.5s time limit to fit safely within Vercel's 10s limit
-    result = greedySetCover(nSamples, k, j, s, atLeast, 3500);
-    const allJ = generateCombinations(nSamples, j);
-    result = removeRedundantGroups(result, allJ, j, s, atLeast);
-    methodName = 'grasp';
+    // Fast mode: prioritize latency on very large common case.
+    if (mode === 'fast' && j === k && s === k - 1 && atLeast === 1 && totalKGroups >= 5000) {
+      result = fastRadiusCoverHeuristic(nSamples, k);
+      methodName = 'grasp-fast';
+      return {
+        samples: nSamples,
+        groups: result,
+        count: result.length,
+        method: methodName
+      };
+    }
+    const graspBudgetMs = mode === 'quality' ? 5500 : (mode === 'fast' ? 2200 : 3500);
+    const scanMode = 'auto';
+    result = greedySetCover(nSamples, k, j, s, atLeast, graspBudgetMs, scanMode);
+    // Redundant-removal post pass can be very expensive on large search spaces.
+    if (
+      totalKGroups <= REDUNDANT_REMOVAL_THRESHOLD ||
+      (mode === 'quality' && totalKGroups <= QUALITY_REDUNDANT_REMOVAL_THRESHOLD)
+    ) {
+      const allJ = generateCombinations(nSamples, j);
+      result = removeRedundantGroups(result, allJ, j, s, atLeast);
+    }
+    methodName = mode === 'quality' ? 'grasp-quality' : (mode === 'fast' ? 'grasp-fast' : 'grasp');
   }
 
   return {

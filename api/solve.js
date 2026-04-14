@@ -39,6 +39,14 @@ function validateInputs(m, n, k, j, s, atLeast, samples) {
   }
 }
 
+function validateSolveMode(solveMode) {
+  const mode = solveMode || 'balanced';
+  if (!['fast', 'balanced', 'quality'].includes(mode)) {
+    throw new Error('solveMode must be one of: fast, balanced, quality');
+  }
+  return mode;
+}
+
 async function saveResult(m, n, k, j, s, samples, groups) {
   if (!supabase) {
     throw new Error('Supabase not configured');
@@ -74,6 +82,17 @@ async function saveResult(m, n, k, j, s, samples, groups) {
   return fileName;
 }
 
+function normalizeGroups(groups) {
+  if (!Array.isArray(groups)) throw new Error('groups must be an array');
+  return groups.map((g) => {
+    if (!Array.isArray(g) || g.length === 0) throw new Error('each group must be a non-empty array');
+    for (const x of g) {
+      if (!isPositiveInteger(x)) throw new Error('group values must be positive integers');
+    }
+    return [...g];
+  });
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -91,7 +110,7 @@ module.exports = async (req, res) => {
   
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-    const { m, n, k, j, s, atLeast = 1, samples, save } = body;
+    const { m, n, k, j, s, atLeast = 1, samples, save, precomputed, solveMode } = body;
     
     // 参数验证
     if (!m || !n || !k || !j || !s) {
@@ -99,10 +118,25 @@ module.exports = async (req, res) => {
     }
 
     validateInputs(m, n, k, j, s, atLeast, samples);
+    const mode = validateSolveMode(solveMode);
     
-    const result = solveOptimalSamples(m, n, k, j, s, atLeast, samples);
+    let result;
+    const solveStart = Date.now();
+    if (precomputed && Array.isArray(precomputed.groups) && Array.isArray(precomputed.samples)) {
+      const normalizedGroups = normalizeGroups(precomputed.groups);
+      result = {
+        samples: precomputed.samples,
+        groups: normalizedGroups,
+        count: precomputed.count || normalizedGroups.length,
+        method: precomputed.method || 'unknown'
+      };
+    } else {
+      result = solveOptimalSamples(m, n, k, j, s, atLeast, samples, mode);
+    }
+    const solveMs = Date.now() - solveStart;
     
     let fileName = null;
+    const saveStart = Date.now();
     if (save) {
       if (!supabase) {
         return res.status(500).json({ error: 'Supabase not configured. Please check environment variables.' });
@@ -124,8 +158,8 @@ module.exports = async (req, res) => {
         throw saveError;
       }
     }
-    
-    res.status(200).json({ ...result, fileName });
+    const saveMs = save ? Date.now() - saveStart : 0;
+    res.status(200).json({ ...result, fileName, timing: { solveMs, saveMs, totalMs: solveMs + saveMs } });
   } catch (error) {
     console.error('API Error:', error);
     res.status(400).json({ error: error.message || 'Unknown error' });

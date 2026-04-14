@@ -61,9 +61,9 @@ We model the task as a set cover optimization problem:
    - Includes pruning and bounds
    - Provides optimal solution
 
-2. **Approximate method (Greedy)**
+2. **Approximate method (GRASP / GRASP-fast)**
    - Used when search space is large
-   - Fast and practical
+   - Time-bounded and practical
    - Produces near-optimal solution
 
 ### 3.3 Engineering optimizations
@@ -137,11 +137,35 @@ Case C:
 
 | Case | Parameters | Method | Group Count | Runtime | Note |
 |---|---|---|---:|---:|---|
-| A | 45,8,6,6,5,1 | backtrack/greedy | `<fill>` | `<fill>` | `<fill>` |
+| A | 45,8,6,6,5,1 | backtrack/grasp | `<fill>` | `<fill>` | `<fill>` |
 | B | `<fill>` | `<fill>` | `<fill>` | `<fill>` | `<fill>` |
 | C | `<fill>` | `<fill>` | `<fill>` | `<fill>` | `<fill>` |
 
 Add screenshots in appendix and place raw outputs in `submission/sample-runs/`.
+
+### 6.3 Correctness and evidence
+
+To avoid only reporting "pass/fail", we provide reproducible evidence files:
+
+- Script: `scripts/generate-evidence-report.js`
+- Output folder: `submission/sample-runs/`
+- Evidence includes:
+  - covered/total `j`-combinations and coverage percentage
+  - method used (`backtrack`, `grasp`, `grasp-fast`, `grasp-quality`)
+  - runtime and group-count statistics
+  - best-run selected groups
+
+Representative evidence files:
+
+- `submission/sample-runs/evidence-2026-04-14T06-15-31-460Z.md`
+- `submission/sample-runs/evidence-n20-fast.md`
+- `submission/sample-runs/evidence-n25-fast.md`
+
+Interpretation:
+
+- `backtrack` on small spaces gives exact optimum.
+- `grasp` / `grasp-quality` provides near-optimal results under time budget.
+- `grasp-fast` is speed-priority mode for very large inputs.
 
 ---
 
