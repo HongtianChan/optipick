@@ -5,10 +5,10 @@
 - Group Number: `<fill>`
 - Course: `CS360/SE360 Artificial Intelligence`
 - Project: `An Optimal Samples Selection System`
-- Member 1: `<name> / <student id>`
-- Member 2: `<name> / <student id>`
-- Member 3: `<name> / <student id>`
-- Member 4: `<name> / <student id>`
+- Member 1: `陈鸿天 / 1230002551`
+- Member 2: `陈乐怡 / <student id>`
+- Member 3: `冯宏臻 / <student id>`
+- Member 4: `余升斌/ <student id>`
 - Date: `<fill>`
 
 ---
