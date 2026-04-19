@@ -3,13 +3,13 @@
 ## Cover Page
 
 - Group Number: `<fill>`
-- Course: `CS360/SE360 Artificial Intelligence`
+- Course: `CS360/SE360 D1 Artificial Intelligence`
 - Project: `An Optimal Samples Selection System`
 - Member 1: `陈鸿天 / 1230002551`
 - Member 2: `陈乐怡 / <student id>`
 - Member 3: `冯宏臻 / <student id>`
 - Member 4: `余升斌/ <student id>`
-- Date: `<fill>`
+- Date: `2026.4.28`
 
 ---
 
@@ -73,6 +73,49 @@ We model the task as a set cover optimization problem:
 - Equivalent-group deduplication
 - Redundant-group removal post-processing
 
+### 3.4 Methodology diagrams and simple example
+
+#### (A) Program flowchart (solver pipeline)
+
+```mermaid
+flowchart TD
+  A([Start solve request]) --> B[Validate parameters]
+  B -->|Invalid| E([Return error])
+  B -->|Valid| C[Build search space & indexes]
+  C --> D{C(n,k) <= threshold?}
+  
+  D -->|Yes| F[Run backtracking exact solver]
+  
+  D -->|No| G{solveMode}
+  subgraph GRASP Heuristics
+    G -->|fast| H[GRASP-fast]
+    G -->|balanced| I[GRASP medium budget]
+    G -->|quality| J[GRASP larger budget]
+  end
+  
+  F --> K[Build result payload]
+  H --> K
+  I --> K
+  J --> K
+  
+  K --> L{save=true?}
+  L -->|Yes| M[(Persist to DB)]
+  M --> N([Return result])
+  L -->|No| N
+```
+
+#### (B) Simple example (small exact case)
+
+Example input:
+
+- `m=45, n=8, k=6, j=6, s=5, at least=1`
+
+Reasoning:
+
+- `C(n,k)=C(8,6)=28`, search space is small.
+- System selects **backtracking exact** method.
+- Output is globally optimal for this case.
+
 ---
 
 ## 4. System Design
@@ -81,7 +124,7 @@ We model the task as a set cover optimization problem:
 
 - Frontend: single-page web UI
 - Backend API: compute + DB operations
-- Database: Supabase `results` table
+- Database: Supabase `results` table (cloud) or localdb (offline mode)
 
 ### 4.2 Main modules
 
@@ -90,7 +133,7 @@ We model the task as a set cover optimization problem:
 - `api/files.js`: list saved files
 - `api/file.js`: display/delete one saved file
 - `api/export.js`: export DB records to JSON
-- `index.html`: UI for calculation and history management
+- `web-ui/index.html`: UI for calculation and history management
 
 ### 4.3 Data format
 
@@ -100,6 +143,80 @@ Stored record naming:
 
 - `x`: run count
 - `y`: result group count
+
+### 4.4 System flowchart
+
+```mermaid
+flowchart TD
+  U([User]) --> UI[Web UI]
+
+  subgraph Backend APIs
+    SOLVE[/api/solve/]
+    FILES[/api/files/]
+    FILE[/api/file/]
+    EXPORT[/api/export/]
+    ALG[algorithm.js]
+  end
+
+  DB[(Supabase / localdb)]
+
+  UI -->|1. solve| SOLVE
+  UI -->|2. list| FILES
+  UI -->|3. display/delete| FILE
+  UI -->|4. export| EXPORT
+
+  SOLVE <-->|compute| ALG
+  SOLVE -->|save record| DB
+  FILES -->|read list| DB
+  FILE -->|read/delete| DB
+  EXPORT -->|read all| DB
+
+  DB -.->|data| FILES
+  DB -.->|data| FILE
+  DB -.->|data| EXPORT
+  SOLVE -.->|result| UI
+```
+
+### 4.5 UI state diagram
+
+```mermaid
+stateDiagram-v2
+  [*] --> Inputting
+  Inputting --> Solving: Click Calculate
+  Solving --> ResultReady: Solve success
+  Solving --> Inputting: Error / Stop
+  ResultReady --> Saving: Click Save to history
+  Saving --> Saved: Save success
+  Saving --> ResultReady: Save failed
+  ResultReady --> Inputting: Edit parameters
+  Saved --> Inputting: Edit parameters
+```
+
+### 4.6 API sequence diagram
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant User
+  participant UI as Web UI
+  participant API as /api/solve
+  participant ALG as algorithm.js
+  participant DB as Supabase/localdb
+
+  User->>UI: Input parameters + Calculate
+  UI->>API: POST solve(save=false)
+  API->>ALG: solveOptimalSamples()
+  ALG-->>API: result payload
+  API-->>UI: result + timing
+  UI-->>User: Show result
+
+  User->>UI: Save to history
+  UI->>API: POST solve(save=true, precomputed)
+  API->>DB: insert record
+  DB-->>API: insert ok
+  API-->>UI: saved fileName
+  UI-->>User: Save success toast
+```
 
 ---
 
@@ -127,19 +244,19 @@ Case A:
 
 Case B:
 
-- `<fill>`
+- `m=50, n=20, k=6, j=6, s=5, at least=1`
 
 Case C:
 
-- `<fill>`
+- `m=50, n=25, k=6, j=6, s=5, at least=1`
 
 ### 6.2 Results summary
 
 | Case | Parameters | Method | Group Count | Runtime | Note |
 |---|---|---|---:|---:|---|
-| A | 45,8,6,6,5,1 | backtrack/grasp | `<fill>` | `<fill>` | `<fill>` |
-| B | `<fill>` | `<fill>` | `<fill>` | `<fill>` | `<fill>` |
-| C | `<fill>` | `<fill>` | `<fill>` | `<fill>` | `<fill>` |
+| A | 45,8,6,6,5,1 | backtrack (exact) | 4 | ~4002 ms | 5 runs, 100% coverage (28/28) |
+| B | 50,20,6,6,5,1 | grasp (balanced) | 1104 | 5069 ms | 100% coverage (38760/38760) |
+| C | 50,25,6,6,5,1 | grasp-fast | 5632 | 238 ms | speed-priority mode, 100% coverage (177100/177100) |
 
 Add screenshots in appendix and place raw outputs in `submission/sample-runs/`.
 
@@ -181,7 +298,7 @@ Interpretation:
 ## 8. Limitations
 
 - Exact method is expensive for large search spaces
-- Greedy method is approximate and may not always be globally optimal
+- GRASP-based heuristics are approximate and may not always be globally optimal
 - Runtime still depends on parameter combination complexity
 
 ---

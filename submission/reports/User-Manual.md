@@ -3,13 +3,13 @@
 ## Cover Page
 
 - Group Number: `<fill>`
-- Course: `CS360/SE360 Artificial Intelligence`
+- Course: `CS360/SE360 D1 Artificial Intelligence`
 - Project: `An Optimal Samples Selection System`
 - Member 1: `陈鸿天 / 1230002551`
 - Member 2: `陈乐怡 / <student id>`
 - Member 3: `冯宏臻 / <student id>`
 - Member 4: `余升斌/ <student id>`
-- Date: `<fill>`
+- Date: `2026.4.28`
 
 ---
 
@@ -47,24 +47,24 @@ Main features:
 ### 3.1 Local setup
 
 ```bash
-cd optimal-samples-selector
+cd /path/to/optimal-samples-selector
 npm install
-cd api
-npm install
+cd cli && npm install && cd ..
 ```
 
-### 3.2 Database setup (Supabase)
+### 3.2 User runtime mode
 
-1. Open Supabase SQL Editor
-2. Run `database/supabase-setup.sql`
-3. Configure environment variables:
-   - `SUPABASE_URL`
-   - `SUPABASE_ANON_KEY`
+For normal users and demo usage, **no database configuration is needed**.
+
+- Deployed web mode: open the project URL and use directly.
+- Local offline mode: run locally and store history on your own machine.
+- Detailed local setup is documented in: `docs/local-mode.md`
 
 ### 3.3 Start / deploy
 
 - If deployed: open the project URL
-- If local with existing script/tooling: follow your team run command
+- Local web mode: `npm run local:web` then open `http://localhost:3000`
+- Local CLI solve mode: `npm run local:solve -- solve --m 45 --n 8 --k 6 --j 6 --s 5 --atLeast 1`
 
 ---
 
@@ -170,8 +170,9 @@ Add screenshots:
 
 - **Error: invalid parameters**
   - Check integer/range constraints
-- **Error: Supabase not configured**
-  - Check `SUPABASE_URL` and `SUPABASE_ANON_KEY`
+- **Cloud save unavailable (deployment only)**
+  - This does not affect local offline mode.
+  - For team deployment troubleshooting, check backend environment variables in deployment docs.
 - **No history displayed**
   - Verify DB table exists and write permissions are correct
 

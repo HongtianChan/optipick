@@ -2,6 +2,12 @@
 
 This folder is prepared for final hand-in.
 
+Quick start checklist:
+
+- `USB-CHECKLIST.md` (final USB packaging checklist)
+- `CHECKLIST.md` (functional/demo/report checklist)
+- `TODO-Week15.md` (remaining week-15 tasks)
+
 ## Folder structure
 
 - `source-code/` - full project source code
