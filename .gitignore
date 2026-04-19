@@ -50,3 +50,8 @@ temp/
 *.tmp
 
 .env*.local
+
+# Local-only (course USB / reports / notes — keep on disk, not on GitHub)
+/submission/
+开发日志.md
+算法简要说明.md
