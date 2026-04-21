@@ -37,6 +37,32 @@ function normalizeGroups(groups) {
   });
 }
 
+function validateCandidate(samples, groups, k) {
+  if (!Array.isArray(samples) || samples.length === 0) {
+    throw new Error('samples must be a non-empty array');
+  }
+  const sampleSet = new Set(samples);
+  if (sampleSet.size !== samples.length) {
+    throw new Error('samples must be unique');
+  }
+  if (!Array.isArray(groups) || groups.length === 0) {
+    throw new Error('groups must be a non-empty array');
+  }
+  if (!Number.isInteger(k) || k <= 0) {
+    throw new Error('k must be a positive integer');
+  }
+  for (const g of groups) {
+    if (g.length !== k) throw new Error(`each group must contain exactly k=${k} values`);
+    const uniq = new Set(g);
+    if (uniq.size !== g.length) throw new Error('group values must be unique within each group');
+    for (const x of g) {
+      if (!sampleSet.has(x)) {
+        throw new Error(`group value ${x} is outside selected samples`);
+      }
+    }
+  }
+}
+
 function evaluateCoverage(samples, groups, j, s, atLeast = 1) {
   const jCombs = combination(samples, j);
   const groupSets = groups.map((g) => new Set(g));
@@ -72,4 +98,4 @@ function evaluateCoverage(samples, groups, j, s, atLeast = 1) {
   };
 }
 
-module.exports = { evaluateCoverage, normalizeGroups };
+module.exports = { evaluateCoverage, normalizeGroups, validateCandidate };

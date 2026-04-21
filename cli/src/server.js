@@ -4,7 +4,7 @@ const path = require('path');
 const url = require('url');
 const { solveOptimalSamples } = require('./algorithm');
 const { saveResult, listDbFiles, readDbFile, deleteDbFile } = require('./db');
-const { evaluateCoverage } = require('./verify');
+const { evaluateCoverage, normalizeGroups: normalizeVerifyGroups, validateCandidate } = require('./verify');
 
 function normalizeGroups(groups) {
   if (!Array.isArray(groups)) throw new Error('groups must be an array');
@@ -87,13 +87,16 @@ function start(port = 3000) {
       req.on('end', () => {
         try {
           const params = JSON.parse(body);
-          const { j, s, atLeast = 1, samples, groups } = params;
+          const { k, j, s, atLeast = 1, samples, groups } = params;
           if (!Array.isArray(samples) || !samples.length) throw new Error('samples must be a non-empty array');
           if (!Array.isArray(groups) || !groups.length) throw new Error('groups must be a non-empty array');
+          if (!Number.isInteger(k) || k <= 0) throw new Error('k must be a positive integer');
           if (!Number.isInteger(j) || !Number.isInteger(s) || j <= 0 || s <= 0) {
             throw new Error('j and s must be positive integers');
           }
-          const check = evaluateCoverage(samples, groups, j, s, atLeast);
+          const normalized = normalizeVerifyGroups(groups);
+          validateCandidate(samples, normalized, k);
+          const check = evaluateCoverage(samples, normalized, j, s, atLeast);
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify(check));
         } catch (error) {

@@ -866,8 +866,10 @@
         <div style="margin-top: 12px; display: flex; gap: 8px;">
           <button type="button" class="btn-print" onclick="printResults()">Print</button>
           <button type="button" class="btn-print" onclick="copyResults()">Copy</button>
-          <button type="button" class="btn-print" id="btn-verify" onclick="verifyCurrentResult()" disabled>Verify</button>
+          <button type="button" class="btn-print" id="btn-load-candidate" onclick="loadCurrentAsCandidate()" disabled>Load Current</button>
+          <button type="button" class="btn-print" id="btn-verify" onclick="verifyCandidateGroups()" disabled>Verify Candidate</button>
         </div>
+        <textarea id="verify-input" style="margin-top: 10px; width: 100%; min-height: 90px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--text); padding: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.82rem;" placeholder="Paste candidate groups as JSON, e.g. [[1,2,3,4,5,6],[1,2,3,4,5,7]]"></textarea>
         <div id="verify-summary" style="margin-top: 10px; color: var(--text-muted); font-size: 0.92rem;"></div>
       </div>
       
@@ -1181,6 +1183,10 @@
         }
         var btnVerify = document.getElementById('btn-verify');
         if (btnVerify) btnVerify.disabled = true;
+        var btnLoadCandidate = document.getElementById('btn-load-candidate');
+        if (btnLoadCandidate) btnLoadCandidate.disabled = true;
+        var verifyInput = document.getElementById('verify-input');
+        if (verifyInput) verifyInput.value = '';
         var verifySummary = document.getElementById('verify-summary');
         if (verifySummary) verifySummary.textContent = '';
       });
@@ -1272,6 +1278,10 @@
       }
       var btnVerify = document.getElementById('btn-verify');
       if (btnVerify) btnVerify.disabled = true;
+      var btnLoadCandidate = document.getElementById('btn-load-candidate');
+      if (btnLoadCandidate) btnLoadCandidate.disabled = true;
+      var verifyInput = document.getElementById('verify-input');
+      if (verifyInput) verifyInput.value = '';
       var verifySummary = document.getElementById('verify-summary');
       if (verifySummary) verifySummary.textContent = '';
       showToast('Executing, please wait...', 'info', 2200);
@@ -1327,6 +1337,10 @@
         document.getElementById('btn-store').disabled = false;
         var btnVerifyOk = document.getElementById('btn-verify');
         if (btnVerifyOk) btnVerifyOk.disabled = false;
+        var btnLoadCandidateOk = document.getElementById('btn-load-candidate');
+        if (btnLoadCandidateOk) btnLoadCandidateOk.disabled = false;
+        var verifyInputOk = document.getElementById('verify-input');
+        if (verifyInputOk) verifyInputOk.value = JSON.stringify(result.groups, null, 2);
         var verifySummaryOk = document.getElementById('verify-summary');
         if (verifySummaryOk) verifySummaryOk.textContent = '';
         stopProgress(true, result.calculationTime);
@@ -1416,18 +1430,47 @@
       }
     }
 
-    async function verifyCurrentResult() {
+    function loadCurrentAsCandidate() {
       if (!currentResult || !Array.isArray(currentResult.groups) || !currentResult.groups.length) {
         showError('Run Execute first');
         showToast('Run Execute first', 'error');
         return;
       }
+      var input = document.getElementById('verify-input');
+      if (input) input.value = JSON.stringify(currentResult.groups, null, 2);
+      showToast('Loaded current groups as candidate', 'info');
+    }
+
+    function parseCandidateGroups() {
+      var input = document.getElementById('verify-input');
+      var raw = input ? input.value.trim() : '';
+      if (!raw) throw new Error('Paste candidate groups JSON first');
+      var parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || !parsed.length) throw new Error('candidate groups must be a non-empty JSON array');
+      return parsed;
+    }
+
+    async function verifyCandidateGroups() {
+      if (!currentResult || !Array.isArray(currentResult.samples) || !currentResult.samples.length) {
+        showError('Run Execute first to establish selected samples');
+        showToast('Run Execute first', 'error');
+        return;
+      }
       var j = parseInt(document.getElementById('param-j').value, 10);
+      var k = parseInt(document.getElementById('param-k').value, 10);
       var s = parseInt(document.getElementById('param-s').value, 10);
       var atLeast = parseInt(document.getElementById('param-atleast').value, 10) || 1;
       var btn = document.getElementById('btn-verify');
       var summaryEl = document.getElementById('verify-summary');
       var prevText = btn ? btn.textContent : 'Verify';
+      var candidateGroups = null;
+      try {
+        candidateGroups = parseCandidateGroups();
+      } catch (parseErr) {
+        showError(parseErr.message);
+        showToast('Invalid candidate groups JSON', 'error');
+        return;
+      }
       if (btn) {
         btn.disabled = true;
         btn.textContent = 'Verifying...';
@@ -1437,11 +1480,12 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            k: k,
             j: j,
             s: s,
             atLeast: atLeast,
             samples: currentResult.samples,
-            groups: currentResult.groups
+            groups: candidateGroups
           })
         });
         var raw = await response.text();
@@ -1501,6 +1545,10 @@
       }
       var btnVerify = document.getElementById('btn-verify');
       if (btnVerify) btnVerify.disabled = true;
+      var btnLoadCandidate = document.getElementById('btn-load-candidate');
+      if (btnLoadCandidate) btnLoadCandidate.disabled = true;
+      var verifyInput = document.getElementById('verify-input');
+      if (verifyInput) verifyInput.value = '';
       var verifySummary = document.getElementById('verify-summary');
       if (verifySummary) verifySummary.textContent = '';
       validateParamsLive();

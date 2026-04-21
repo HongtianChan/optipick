@@ -37,6 +37,32 @@ function normalizeGroups(groups) {
   });
 }
 
+function validateCandidate(samples, groups, k) {
+  if (!Array.isArray(samples) || samples.length === 0) {
+    throw new Error('samples must be a non-empty array');
+  }
+  const sampleSet = new Set(samples);
+  if (sampleSet.size !== samples.length) {
+    throw new Error('samples must be unique');
+  }
+  if (!Array.isArray(groups) || groups.length === 0) {
+    throw new Error('groups must be a non-empty array');
+  }
+  if (!Number.isInteger(k) || k <= 0) {
+    throw new Error('k must be a positive integer');
+  }
+  for (const g of groups) {
+    if (g.length !== k) throw new Error(`each group must contain exactly k=${k} values`);
+    const uniq = new Set(g);
+    if (uniq.size !== g.length) throw new Error('group values must be unique within each group');
+    for (const x of g) {
+      if (!sampleSet.has(x)) {
+        throw new Error(`group value ${x} is outside selected samples`);
+      }
+    }
+  }
+}
+
 function evaluateCoverage(samples, groups, j, s, atLeast = 1) {
   const jCombs = combination(samples, j);
   const groupSets = groups.map((g) => new Set(g));
@@ -89,17 +115,21 @@ module.exports = async (req, res) => {
 
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-    const { j, s, atLeast = 1, samples, groups } = body || {};
+    const { k, j, s, atLeast = 1, samples, groups } = body || {};
     if (!Array.isArray(samples) || samples.length === 0) {
       return res.status(400).json({ error: 'samples must be a non-empty array' });
     }
     if (!Number.isInteger(j) || !Number.isInteger(s) || j <= 0 || s <= 0) {
       return res.status(400).json({ error: 'j and s must be positive integers' });
     }
+    if (!Number.isInteger(k) || k <= 0) {
+      return res.status(400).json({ error: 'k must be a positive integer' });
+    }
     if (!Number.isInteger(atLeast) || atLeast <= 0) {
       return res.status(400).json({ error: 'atLeast must be a positive integer' });
     }
     const normalizedGroups = normalizeGroups(groups);
+    validateCandidate(samples, normalizedGroups, k);
     const check = evaluateCoverage(samples, normalizedGroups, j, s, atLeast);
     res.status(200).json(check);
   } catch (error) {
