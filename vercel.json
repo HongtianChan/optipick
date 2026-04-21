@@ -2,6 +2,10 @@
   "outputDirectory": ".",
   "rewrites": [
     {
+      "source": "/favicon.svg",
+      "destination": "/web-ui/favicon.svg"
+    },
+    {
       "source": "/",
       "destination": "/web-ui/index.html"
     },

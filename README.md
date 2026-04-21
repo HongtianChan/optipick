@@ -2,7 +2,7 @@
 
 **Optimal sample subset picker** for a fixed course formulation: draw **n** distinct IDs from **1…m**, then minimize how many **k**-groups you need so every **j**-subset of those samples meets coverage rules (**s**, **at least**) — modeled as set cover.
 
-**[Live demo](https://optipick-system.vercel.app)** · [Local (offline) mode](./docs/local-mode.md) · [Deploy to Vercel](./docs/vercel-deployment-guide.md) · [Course handout (notes)](./docs/project-spec/group-project-notes.md) · [Docs index](./docs/README.md)
+**[Live demo](https://optipick-system.vercel.app)** · [Local (offline) mode](./docs/local-mode.md) · [Deploy to Vercel](./docs/vercel-deployment-guide.md) · [Docs index](./docs/README.md)
 
 ---
 

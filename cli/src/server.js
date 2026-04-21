@@ -174,6 +174,20 @@ function start(port = 3000) {
     }
     
     // 静态文件
+    if (pathname === '/favicon.svg' && req.method === 'GET') {
+      const iconPath = path.join(__dirname, '../../web-ui/favicon.svg');
+      if (!fs.existsSync(iconPath)) {
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Not Found');
+        return;
+      }
+      const svg = fs.readFileSync(iconPath, 'utf-8');
+      res.writeHead(200, { 'Content-Type': 'image/svg+xml; charset=utf-8' });
+      res.end(svg);
+      return;
+    }
+
+    // 静态文件
     if (pathname === '/' || pathname === '/index.html') {
       // Try multiple locations to support different repo layouts.
       const webUiPath = path.join(__dirname, '../../web-ui/index.html');

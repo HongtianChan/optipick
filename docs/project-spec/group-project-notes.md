@@ -1,4 +1,4 @@
-# AI Group Project Notes (English)
+# AI Group Project Notes
 
 This document is an English reference for the course project formulation used by Optipick.
 
