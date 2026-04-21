@@ -1,93 +1,28 @@
-# 算法优化说明：分层 + 启发式搜索
+# Algorithm Optimizations
 
-本文档说明在集合覆盖求解器上应用**分层**与**启发式搜索**后的改动与效果。
+This document summarizes practical optimizations used in the solver.
 
-## 一、分层（Layering）
+## 1) Layered solving
 
-**思路**：把求解拆成「粗解 → 精修」两层，而不是一步到位。
+- First build a feasible cover quickly.
+- Then run redundant-group removal to tighten the result.
 
-### 1. 贪心 + 冗余移除（两层）
+## 2) Heuristic ordering and pruning
 
-- **第一层**：用贪心得到一组可行解（若干 k 组覆盖所有 j 组合）。
-- **第二层**：对贪心解做**冗余组移除**——若某组覆盖的 j 组合都已被其他已选组覆盖，则删除该组。
+- Sort candidates by estimated coverage impact.
+- Use lower-bound checks to prune branches early in backtracking.
 
-实现：`removeRedundantGroups(selected, allJCombinations, j, s, atLeast)`，在 `solveOptimalSamples` 的贪心分支末尾调用。
+## 3) Coverage precomputation
 
-**效果**：贪心解往往含冗余组，移除后组数常能减少，解更紧。
+- Precompute coverage indexes once.
+- Reuse them across greedy selection and search steps.
 
-### 2. 回溯中的“上界层”
+## 4) Symmetry reduction
 
-- 回溯前先跑一遍贪心，用贪心解的长度作为**上界** `bestCount`，再开始搜索。
-- 这样剪枝条件「当前组数 ≥ bestCount」更紧，更早剪枝。
+- Deduplicate candidates with equivalent coverage signatures.
+- Reduce repeated exploration of effectively identical branches.
 
----
+## 5) Fast-path behavior
 
-## 二、启发式搜索（Heuristic Search）
-
-**思路**：用启发信息决定「先搜谁、何时剪枝」，让搜索更快找到好解、剪掉更多分支。
-
-### 1. 覆盖预计算（加速 + 供启发式用）
-
-- **`buildCoverageIndexes`**：预计算每个 k 组覆盖的 j 组合**下标**列表。
-- 贪心时：每轮只需遍历这些下标判断是否已在 `covered` 中，不再对每个 (k 组, j 组合) 调用 `coversRequirement`，减少重复计算。
-- 回溯时：用同一套覆盖信息做排序和下界。
-
-### 2. 回溯的启发式排序（Ordered Backtrack）
-
-- 将 `allKGroups` 按**覆盖的 j 组合数量**降序排列（覆盖多的排在前面）。
-- 回溯时按此顺序「先选覆盖多的组、再选覆盖少的组」。
-- **效果**：更容易先走到较优解，从而更快把 `bestCount` 降下来，后续剪枝更狠。
-
-### 3. 下界剪枝（Lower Bound Pruning）
-
-- 设当前未覆盖的 j 组合数为 `uncovered`，单组最多能覆盖的 j 组合数为 `maxSingleCover`（预计算）。
-- 下界：至少还需要  
-  `lb = ceil(uncovered / maxSingleCover)`  
-  个组才能覆盖完。
-- 剪枝条件：若 `selected.length + lb >= bestCount`，则当前分支不可能优于已知解，直接剪掉。
-
-### 4. Burnside 式去重（Symmetry Reduction）
-
-**思想来源**：Burnside 引理——利用对称性减少需要考虑的情况数，只考虑"本质不同"的情况。
-
-**应用**：两个 k 组若覆盖的 j 组合集合完全相同，则它们"等价"——选哪个效果一样。
-
-- **`deduplicateByCoverage(allKGroups, coverageIndexes)`**：按覆盖集合分类，每类只保留一个代表元。
-- 用排序后的覆盖下标列表 `coverageIndexes[i].sort().join(',')` 作为等价类的 key。
-- 搜索空间从 C(n,k) 缩减到「本质不同的覆盖类数」。
-
-**效果**：当多个 k 组覆盖能力相同时，避免重复搜索等价分支，加速贪心与回溯。
-
-### 5. 贪心内层位图化（Bitset Greedy）
-
-**思路**：用 Uint32Array 表示「已覆盖的 j 组合」与「每组覆盖的 j 组合」，每轮用 `popcount(groupBits & ~coveredBits)` 算新增覆盖数，用 `coveredBits |= groupBits` 更新。
-
-- 每轮选组：由「遍历每组、对每组遍历其覆盖列表并查 Set」改为「遍历每组、做一次按位与和 popcount」。
-- 实现：`bitsetFromIndexList`、`popcountBitset`、`popcountAndNot`、`bitsetOrInto`；贪心循环用位图维护 covered 与选组。
-
-**效果**：n=15 时贪心轮从数十秒级降到秒级，整体（含 buildCoverageIndexes）约 47s → 20s。
-
-### 6. 覆盖检查早退（j≠s, atLeast=1）
-
-**思路**：当 `j !== s` 且 `atLeast === 1` 时，只需判断「交集是否 ≥ s」，不必算完整交集大小。
-
-- `intersectionAtLeastWithSet(kGroupSet, jCombination, s)`：在遍历 j 组合时，一旦计数达到 s 即返回 true。
-- 在 `buildCoverageIndexes` 的热路径中调用，减少一次 has 与比较。
-
----
-
-## 三、小结
-
-| 手段           | 作用                         |
-|----------------|------------------------------|
-| 覆盖预计算     | 贪心、回溯共用，少算覆盖关系 |
-| Burnside 去重  | 只保留本质不同的 k 组，缩小搜索空间 |
-| 贪心位图       | 每轮 O(候选组×字长) 的 popcount，替代 Set 查表 |
-| 覆盖检查早退   | j≠s 且 atLeast=1 时达到 s 即返回 |
-| 贪心用下标集合 | （小规模或非位图路径）每轮 O(候选组×该组覆盖数) |
-| 冗余移除       | 贪心解后处理，减少组数       |
-| 贪心作上界     | 回溯起始 bestCount 更小      |
-| k 组按覆盖排序 | 回溯优先进“好”分支           |
-| 下界剪枝       | 提前剪掉不可能更优的分支     |
-
-以上均在**不改变问题语义**的前提下实现，回溯仍为精确算法；贪心分支在近似解上多了一层冗余移除，通常能得到更少的组数。
+- For large combinatorial spaces, use mode-based time budgets (`fast`, `balanced`, `quality`).
+- Optionally skip expensive post-processing on very large instances.

@@ -402,6 +402,111 @@
     .user-input-grid input:focus { outline: none; border-color: var(--accent); }
     .user-input-grid input:disabled { opacity: 0.4; cursor: not-allowed; }
     
+    .results-box {
+      width: 100%;
+      min-height: 120px;
+      max-height: 400px;
+      overflow-y: auto;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+    }
+    .results-box:empty::before {
+      content: attr(data-placeholder);
+      color: var(--text-muted);
+    }
+    .groups-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      padding: 8px 0;
+    }
+    .group-item {
+      display: flex;
+      align-items: center;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+    }
+    .group-index {
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-right: 12px;
+      font-size: 0.8125rem;
+    }
+    .group-values {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .group-value {
+      background: var(--accent);
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.8125rem;
+      font-weight: 500;
+    }
+    
+    /* Selected samples (same readability idea as Results) */
+    .samples-display {
+      width: 100%;
+      min-height: 100px;
+      max-height: 280px;
+      overflow-y: auto;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+    }
+    .samples-display:empty::before {
+      content: attr(data-placeholder);
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+    .samples-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: stretch;
+    }
+    .sample-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      min-height: 40px;
+    }
+    .sample-ord {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      min-width: 2.25em;
+    }
+    .sample-num {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: rgba(14, 165, 233, 0.12);
+      border: 1px solid rgba(14, 165, 233, 0.35);
+    }
+    html[data-theme="dark"] .sample-num {
+      background: rgba(56, 189, 248, 0.12);
+      border-color: rgba(56, 189, 248, 0.35);
+    }
+    
     .results-header {
       display: flex;
       justify-content: space-between;
@@ -559,16 +664,35 @@
     }
     
     @media print {
-      body { background: white; padding: 16px; }
+      html, body {
+        background: #fff !important;
+        padding: 16px;
+        color: #000 !important;
+      }
+      /* Hide overlays (toast “Preparing print…” sits bottom-right and was printing) */
+      .toast,
+      #toast,
+      .click-particle,
+      #terminal-output,
+      #calc-progress {
+        display: none !important;
+        visibility: hidden !important;
+      }
       .wrap, .header, .tabs, .card:not(.print-section), .modal-backdrop { display: none !important; }
       .print-section {
         display: block !important;
         padding: 20px;
-        border: 1px solid #ddd;
+        border: 1px solid #000;
         margin-bottom: 20px;
+        color: #000 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
       }
-      .print-title { font-size: 18px; font-weight: bold; margin-bottom: 12px; border-bottom: 2px solid #000; padding-bottom: 8px; }
-      .print-param, .print-samples, .print-results, .print-filename { margin: 10px 0; font-size: 14px; }
+      .print-section * {
+        color: #000 !important;
+      }
+      .print-title { font-size: 18px; font-weight: bold; margin-bottom: 12px; border-bottom: 2px solid #000; padding-bottom: 8px; color: #000 !important; }
+      .print-param, .print-samples, .print-results, .print-filename { margin: 10px 0; font-size: 14px; color: #000 !important; }
     }
     .print-section { display: none; }
 
@@ -620,18 +744,18 @@
         <button class="help-btn" onclick="showHelp()" title="Help" aria-label="Help">?</button>
       </div>
       <h1>Optimal Samples Selector</h1>
-      <p>Choose parameters, pick how to select samples, then run the calculation. Results can be saved and viewed later.</p>
+      <p>Set parameters, choose samples, <strong>Execute</strong>, then <strong>Store</strong> if you want to keep the run.</p>
     </header>
     
     <nav class="tabs">
-      <button class="tab active" onclick="showTab('main')">Calculate</button>
-      <button class="tab" onclick="showTab('database')">History</button>
+      <button class="tab active" onclick="showTab('main')">Main</button>
+      <button class="tab" onclick="showTab('database')">Data Base</button>
     </nav>
     
     <div id="main-tab">
       <div class="card">
         <div class="card-title">Parameters</div>
-        <p class="card-desc">Set the sample range and coverage rules. Search space C(n,k) determines whether the exact or approximate algorithm is used.</p>
+        <p class="card-desc">Set m, n, k, j, s and at least as in the handout. Small C(n,k) → exact backtracking; large C(n,k) → GRASP (approximate, time-bounded).</p>
         <div class="params-grid">
           <div class="param-group">
             <label>m (total samples)</label>
@@ -703,16 +827,16 @@
       
       <div class="card" id="user-input-section" style="display: none;">
         <div class="card-title">Manual input</div>
-        <p class="card-desc">Enter n numbers (1–m), then click Calculate.</p>
+        <p class="card-desc">Enter n numbers (1–m), then click Execute.</p>
         <div id="user-input-grid" class="user-input-grid"></div>
       </div>
       
       <div class="cta-block">
-        <button class="btn-calculate" id="btn-execute" onclick="execute()">Calculate</button>
+        <button class="btn-calculate" id="btn-execute" onclick="execute()">Execute</button>
         <div class="cta-secondary">
-          <button type="button" id="btn-stop" onclick="cancelCalculation()" disabled>Stop calculation</button>
-          <button type="button" id="btn-store" onclick="store()" disabled>Save to history</button>
-          <button type="button" onclick="clearAll()">Clear all</button>
+          <button type="button" id="btn-stop" onclick="cancelCalculation()" disabled>Stop execution</button>
+          <button type="button" id="btn-store" onclick="store()" disabled>Store</button>
+          <button type="button" onclick="clearAll()">Clear</button>
         </div>
         <div id="calc-progress" class="progress-wrap">
           <div class="progress-track"><div id="calc-progress-bar" class="progress-bar"></div></div>
@@ -721,9 +845,12 @@
       </div>
       
       <div class="card">
-        <div class="card-title">Selected samples</div>
-        <p class="card-desc">The n numbers used in the calculation (filled after you run it).</p>
-        <textarea id="values-input" class="text-area" readonly placeholder="Run Calculate to see selected numbers"></textarea>
+        <div class="results-header" style="margin-bottom: 6px;">
+          <div class="card-title" style="margin-bottom: 0;">Selected samples</div>
+          <button type="button" class="btn-print" onclick="copySelectedSamples()">Copy</button>
+        </div>
+        <p class="card-desc">The n numbers used in this run (filled after Execute, or from manual input).</p>
+        <div id="values-display" class="samples-display" data-placeholder="Run Execute to see the chosen n numbers.&#10;If you use “Input n manually”, your entries appear here."></div>
       </div>
       
       <div class="card">
@@ -735,10 +862,13 @@
           <div class="results-meta-title" id="meta-title"></div>
           <div class="results-meta-desc" id="meta-desc"></div>
         </div>
-        <textarea id="results" class="text-area" readonly placeholder="Run Calculate to see minimum groups and group contents"></textarea>
-        <div style="margin-top: 12px;">
+        <div id="results" class="results-box" data-placeholder="Run Execute to see minimum groups and group contents"></div>
+        <div style="margin-top: 12px; display: flex; gap: 8px;">
           <button type="button" class="btn-print" onclick="printResults()">Print</button>
+          <button type="button" class="btn-print" onclick="copyResults()">Copy</button>
+          <button type="button" class="btn-print" id="btn-verify" onclick="verifyCurrentResult()" disabled>Verify</button>
         </div>
+        <div id="verify-summary" style="margin-top: 10px; color: var(--text-muted); font-size: 0.92rem;"></div>
       </div>
       
       <div id="error-message" class="error hidden"></div>
@@ -746,8 +876,8 @@
     
     <div id="database-tab" class="hidden">
       <div class="card">
-        <div class="card-title">History</div>
-        <p class="card-desc">Saved results appear below. Select one and click Display to view, or Delete to remove.</p>
+        <div class="card-title">Data Base Resources</div>
+        <p class="card-desc">Stored runs are listed below. Select a row, then Display or Delete.</p>
         <div class="history-actions">
           <button class="btn-primary" onclick="displayFile()">Display</button>
           <button class="btn-primary" onclick="exportDb()">Export DB</button>
@@ -756,10 +886,11 @@
         <div id="file-list" class="file-list"></div>
         <div class="card-title" style="margin-top: 16px;">Content</div>
         <div id="db-filename" class="filename" style="margin-bottom: 8px;"></div>
-        <textarea id="db-results" class="text-area" readonly placeholder="Select an item and click Display"></textarea>
+        <div id="db-results" class="results-box" data-placeholder="Select an item and click Display"></div>
         <div class="nav-buttons">
-          <button type="button" onclick="showTab('main')">Back to Calculate</button>
+          <button type="button" onclick="showTab('main')">BACK</button>
           <button type="button" class="btn-print" onclick="printDbResults()">Print</button>
+          <button type="button" class="btn-print" onclick="copyDbResults()">Copy</button>
         </div>
       </div>
     </div>
@@ -768,12 +899,14 @@
   <div id="help-modal" class="modal-backdrop hidden" onclick="if(event.target===this)closeHelp()">
     <div class="modal" onclick="event.stopPropagation()">
       <h3>How to use</h3>
-      <p>This tool finds the minimum number of k-groups that cover your s-subset constraints.</p>
+      <p><strong>Please input the following parameters.</strong></p>
+      <p><strong>Context (from the course handout).</strong> Data volume has grown sharply (e.g. health events, cheap storage, always-on networks). Useful analysis usually starts by extracting a <em>subset</em> of samples that is as fair and unbiased as possible—and as optimal as possible under clear rules. This project implements one such combinatorial formulation: pick <strong>n</strong> items from <strong>m</strong>, then build a <strong>minimum</strong> set of <strong>k</strong>-groups that satisfy the <strong>j / s / at least</strong> coverage rules.</p>
+      <p>This tool finds that minimum (exactly when the search space is small, otherwise with a time-bounded heuristic).</p>
       <ul>
         <li>Set m, n, K, j, S and at least.</li>
         <li>Choose Random n (system picks) or Input n (you type the numbers).</li>
-        <li>Click <strong>Calculate</strong> to run. Results appear below.</li>
-        <li>Use <strong>Save to history</strong> to store the result; open the <strong>History</strong> tab to view or delete saved runs.</li>
+        <li>Click <strong>Execute</strong> to run. Results appear below.</li>
+        <li>Use <strong>Store</strong> to save the run; open the <strong>Data Base</strong> tab to Display or Delete.</li>
       </ul>
       <button type="button" class="btn-close" onclick="closeHelp()">Close</button>
     </div>
@@ -793,6 +926,21 @@
     let progressExpectedMs = 0;
     let currentAbortController = null;
     let isCalculating = false;
+    let currentDbResult = null;
+
+    function renderGroupsHtml(groups) {
+      if (!groups || groups.length === 0) return '';
+      return '<div class="groups-grid">' + groups.map(function(g, i) {
+        return '<div class="group-item"><span class="group-index">#' + (i + 1) + '</span><div class="group-values">' + g.map(function(v) { return '<span class="group-value">' + v + '</span>'; }).join('') + '</div></div>';
+      }).join('') + '</div>';
+    }
+
+    function renderSamplesHtml(samples) {
+      if (!samples || samples.length === 0) return '';
+      return '<div class="samples-chips">' + samples.map(function(v, i) {
+        return '<div class="sample-chip"><span class="sample-ord">#' + (i + 1) + '</span><span class="sample-num">' + v + '</span></div>';
+      }).join('') + '</div>';
+    }
 
     function showToast(message, type, duration) {
       var el = document.getElementById('toast');
@@ -942,7 +1090,7 @@
     function cancelCalculation() {
       if (!isCalculating || !currentAbortController) return;
       currentAbortController.abort();
-      showToast('Calculation cancelled', 'info', 1800);
+      showToast('Execution cancelled', 'info', 1800);
     }
     
     function updateSearchSpaceTip() {
@@ -1028,15 +1176,20 @@
         var btnStore = document.getElementById('btn-store');
         if (btnStore) {
           btnStore.disabled = true;
-          btnStore.textContent = 'Save to history';
+          btnStore.textContent = 'Store';
           btnStore.classList.remove('btn-success-state');
         }
+        var btnVerify = document.getElementById('btn-verify');
+        if (btnVerify) btnVerify.disabled = true;
+        var verifySummary = document.getElementById('verify-summary');
+        if (verifySummary) verifySummary.textContent = '';
       });
     });
 
     initUserInputs();
     updateSearchSpaceTip();
     validateParamsLive();
+    updateValuesInput();
     
     function toggleInputMode() {
       const mode = document.querySelector('input[name="mode"]:checked');
@@ -1052,18 +1205,25 @@
     function updateValuesInput() {
       const mode = document.querySelector('input[name="mode"]:checked');
       const n = parseInt(document.getElementById('param-n').value, 10) || 0;
-      const textarea = document.getElementById('values-input');
-      if (!textarea) return;
+      const el = document.getElementById('values-display');
+      if (!el) return;
       if (mode && mode.value === 'input') {
         var values = [];
         for (var i = 1; i <= n; i++) {
-          var val = document.getElementById('user-input-' + i);
-          if (val && val.value) values.push(val.value);
+          var cell = document.getElementById('user-input-' + i);
+          if (cell && cell.value !== '') {
+            var num = parseInt(cell.value, 10);
+            values.push(isNaN(num) ? cell.value : num);
+          }
         }
-        textarea.value = values.map(function(v, idx) { return (idx + 1) + 'st # ' + v; }).join('\n');
-      } else {
-        textarea.value = '';
+        el.innerHTML = values.length ? renderSamplesHtml(values) : '';
+        return;
       }
+      if (currentResult && currentResult.samples && currentResult.samples.length) {
+        el.innerHTML = renderSamplesHtml(currentResult.samples);
+        return;
+      }
+      el.innerHTML = '';
     }
     
     async function execute() {
@@ -1097,20 +1257,24 @@
       var btn = document.getElementById('btn-execute');
       var btnStop = document.getElementById('btn-stop');
       var prevText = btn ? btn.textContent : '';
-      if (btn) { btn.disabled = true; btn.textContent = 'Calculating…'; }
+      if (btn) { btn.disabled = true; btn.textContent = 'Executing…'; }
       if (btnStop) { btnStop.disabled = false; }
       currentAbortController = new AbortController();
       isCalculating = true;
-      document.getElementById('results').value = 'Calculating…';
+      document.getElementById('results').innerHTML = '<div style="color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 0.875rem;">Executing…</div>';
       startProgress();
       document.getElementById('results-meta').classList.remove('show');
       var btnStore = document.getElementById('btn-store');
       if (btnStore) {
         btnStore.disabled = true;
-        btnStore.textContent = 'Save to history';
+        btnStore.textContent = 'Store';
         btnStore.classList.remove('btn-success-state');
       }
-      showToast('Calculating, please wait...', 'info', 2200);
+      var btnVerify = document.getElementById('btn-verify');
+      if (btnVerify) btnVerify.disabled = true;
+      var verifySummary = document.getElementById('verify-summary');
+      if (verifySummary) verifySummary.textContent = '';
+      showToast('Executing, please wait...', 'info', 2200);
       var startTime = performance.now();
       
       try {
@@ -1132,14 +1296,13 @@
         }
         if (result.error) {
           showError(result.error);
-          document.getElementById('results').value = '';
+          document.getElementById('results').innerHTML = '';
           return;
         }
         var endTime = performance.now();
         result.calculationTime = ((endTime - startTime) / 1000).toFixed(3);
         currentResult = result;
-        document.getElementById('values-input').value = result.samples.map(function(v, idx) { return (idx + 1) + 'st # ' + v; }).join('\n');
-        var groupsText = result.groups.map(function(group, idx) { return (idx + 1) + '. [' + group.join(', ') + ']'; }).join('\n');
+        updateValuesInput();
         var metaEl = document.getElementById('results-meta');
         var titleEl = document.getElementById('meta-title');
         var descEl = document.getElementById('meta-desc');
@@ -1159,22 +1322,26 @@
         }
         metaEl.classList.add('show');
         
-        document.getElementById('results').value = groupsText;
+        document.getElementById('results').innerHTML = renderGroupsHtml(result.groups);
         document.getElementById('filename').textContent = '';
         document.getElementById('btn-store').disabled = false;
+        var btnVerifyOk = document.getElementById('btn-verify');
+        if (btnVerifyOk) btnVerifyOk.disabled = false;
+        var verifySummaryOk = document.getElementById('verify-summary');
+        if (verifySummaryOk) verifySummaryOk.textContent = '';
         stopProgress(true, result.calculationTime);
-        showToast('Calculation finished', 'success');
+        showToast('Execution finished', 'success');
       } catch (err) {
         if (err && err.name === 'AbortError') {
           hideError();
-          document.getElementById('results').value = '';
+          document.getElementById('results').innerHTML = '';
           stopProgress(false, '');
-          showToast('Calculation cancelled', 'info');
+          showToast('Execution cancelled', 'info');
         } else {
-          showError('Calculation failed: ' + (err.message || 'Network error'));
-          document.getElementById('results').value = '';
+          showError('Execution failed: ' + (err.message || 'Network error'));
+          document.getElementById('results').innerHTML = '';
           stopProgress(false, '');
-          showToast('Calculation failed', 'error');
+          showToast('Execution failed', 'error');
         }
       } finally {
         isCalculating = false;
@@ -1185,11 +1352,11 @@
     }
     
     async function store() {
-      if (!currentResult) { showError('Run a calculation first'); showToast('Run Calculate first', 'error'); return; }
+      if (!currentResult) { showError('Run Execute first'); showToast('Run Execute first', 'error'); return; }
       
       var btn = document.getElementById('btn-store');
       btn.disabled = true;
-      btn.textContent = 'Saving...';
+      btn.textContent = 'Storing...';
       
       var m = parseInt(document.getElementById('param-m').value, 10);
       var n = parseInt(document.getElementById('param-n').value, 10);
@@ -1236,16 +1403,78 @@
         document.getElementById('filename').textContent = result.fileName;
         hideError();
         
-        btn.textContent = 'Saved ✓';
+        btn.textContent = 'Stored ✓';
         btn.classList.add('btn-success-state');
         var saveElapsed = ((performance.now() - saveStartAt) / 1000).toFixed(2);
-        showToast('Saved in ' + saveElapsed + 's: ' + result.fileName, 'success', 2600);
+        showToast('Stored in ' + saveElapsed + 's: ' + result.fileName, 'success', 2600);
         loadFileList();
       } catch (err) { 
-        showError('Save failed: ' + err.message); 
-        showToast('Save failed', 'error'); 
+        showError('Store failed: ' + err.message); 
+        showToast('Store failed', 'error'); 
         btn.disabled = false;
-        btn.textContent = 'Save to history';
+        btn.textContent = 'Store';
+      }
+    }
+
+    async function verifyCurrentResult() {
+      if (!currentResult || !Array.isArray(currentResult.groups) || !currentResult.groups.length) {
+        showError('Run Execute first');
+        showToast('Run Execute first', 'error');
+        return;
+      }
+      var j = parseInt(document.getElementById('param-j').value, 10);
+      var s = parseInt(document.getElementById('param-s').value, 10);
+      var atLeast = parseInt(document.getElementById('param-atleast').value, 10) || 1;
+      var btn = document.getElementById('btn-verify');
+      var summaryEl = document.getElementById('verify-summary');
+      var prevText = btn ? btn.textContent : 'Verify';
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Verifying...';
+      }
+      try {
+        var response = await fetch(API_BASE + '/api/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            j: j,
+            s: s,
+            atLeast: atLeast,
+            samples: currentResult.samples,
+            groups: currentResult.groups
+          })
+        });
+        var raw = await response.text();
+        var result = null;
+        try {
+          result = JSON.parse(raw);
+        } catch (_) {
+          throw new Error('Server returned non-JSON response');
+        }
+        if (!response.ok) {
+          throw new Error(result && result.error ? result.error : ('HTTP ' + response.status));
+        }
+        var base = 'Coverage: ' + result.satisfied + '/' + result.total + ' (' + result.coveragePct.toFixed(2) + '%)';
+        if (result.passed) {
+          if (summaryEl) summaryEl.textContent = 'Verification passed. ' + base + '.';
+          showToast('Verification passed', 'success');
+        } else {
+          var failedHint = '';
+          if (result.failed && result.failed.length) {
+            var first = result.failed[0];
+            failedHint = ' First failed j-combination: [' + first.jCombination.join(', ') + '] (' + first.covered + '/' + first.required + ').';
+          }
+          if (summaryEl) summaryEl.textContent = 'Verification failed. ' + base + '.' + failedHint;
+          showToast('Verification failed', 'error');
+        }
+      } catch (err) {
+        showError('Verify failed: ' + (err.message || 'Network error'));
+        showToast('Verify failed', 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = prevText;
+        }
       }
     }
     
@@ -1257,21 +1486,23 @@
       document.getElementById('param-s').value = '5';
       document.getElementById('param-atleast').value = '1';
       document.getElementById('param-solve-mode').value = 'balanced';
-      document.getElementById('values-input').value = '';
-      document.getElementById('results').value = '';
+      currentResult = null;
+      document.getElementById('values-display').innerHTML = '';
+      document.getElementById('results').innerHTML = '';
       document.getElementById('results-meta').classList.remove('show');
       document.getElementById('filename').textContent = '';
-      currentResult = null;
-      for (var i = 1; i <= 25; i++) {
-        var inp = document.getElementById('user-input-' + i);
-        if (inp) inp.value = '';
-      }
+      initUserInputs();
+      updateValuesInput();
       var btnStore = document.getElementById('btn-store');
       if (btnStore) {
         btnStore.disabled = true;
-        btnStore.textContent = 'Save to history';
+        btnStore.textContent = 'Store';
         btnStore.classList.remove('btn-success-state');
       }
+      var btnVerify = document.getElementById('btn-verify');
+      if (btnVerify) btnVerify.disabled = true;
+      var verifySummary = document.getElementById('verify-summary');
+      if (verifySummary) verifySummary.textContent = '';
       validateParamsLive();
       hideError();
       showToast('Form cleared', 'info');
@@ -1295,12 +1526,52 @@
       }
       var printContent = document.createElement('div');
       printContent.className = 'print-section';
-      printContent.innerHTML = '<div class="print-title">Optimal Samples Selection System - Results</div><div class="print-param"><strong>Parameters:</strong> m=' + m + ', n=' + n + ', k=' + k + ', j=' + j + ', s=' + s + ', at least=' + atLeast + '</div><div class="print-param"><strong>Condition:</strong> ' + conditionDesc + '</div><div class="print-samples"><strong>Selected samples:</strong><br>' + currentResult.samples.map(function(v, i) { return (i+1) + 'st # ' + v; }).join('<br>') + '</div><div class="print-results"><strong>Algorithm:</strong> ' + (currentResult.method === 'backtrack' ? 'Backtrack (Exact)' : (currentResult.method === 'grasp-quality' ? 'GRASP Quality' : (currentResult.method === 'grasp-fast' ? 'GRASP Fast' : 'GRASP Balanced'))) + '<br><strong>Min groups:</strong> ' + currentResult.count + '<br><br>' + currentResult.groups.map(function(g, i) { return (i+1) + '. [' + g.join(', ') + ']'; }).join('<br>') + '</div>' + (filename ? '<div class="print-filename">Filename: ' + filename + (fileInfo ? ' (' + fileInfo + ')' : '') + '</div>' : '') + '<div class="print-filename">Generated: ' + new Date().toLocaleString() + '</div>';
+      printContent.innerHTML = '<div class="print-title">Optimal Samples Selector — Results</div><div class="print-param"><strong>Parameters:</strong> m=' + m + ', n=' + n + ', k=' + k + ', j=' + j + ', s=' + s + ', at least=' + atLeast + '</div><div class="print-param"><strong>Condition:</strong> ' + conditionDesc + '</div><div class="print-samples"><strong>Selected samples:</strong><br>' + currentResult.samples.map(function(v, i) { return (i+1) + 'st # ' + v; }).join('<br>') + '</div><div class="print-results"><strong>Algorithm:</strong> ' + (currentResult.method === 'backtrack' ? 'Backtrack (Exact)' : (currentResult.method === 'grasp-quality' ? 'GRASP Quality' : (currentResult.method === 'grasp-fast' ? 'GRASP Fast' : 'GRASP Balanced'))) + '<br><strong>Min groups:</strong> ' + currentResult.count + '<br><br>' + currentResult.groups.map(function(g, i) { return (i+1) + '. [' + g.join(', ') + ']'; }).join('<br>') + '</div>' + (filename ? '<div class="print-filename">Filename: ' + filename + (fileInfo ? ' (' + fileInfo + ')' : '') + '</div>' : '') + '<div class="print-filename">Generated: ' + new Date().toLocaleString() + '</div>';
       document.body.appendChild(printContent);
       window.print();
       setTimeout(function() { document.body.removeChild(printContent); }, 100);
     }
     
+    function copyResults() {
+      if (!currentResult) return;
+      var text = 'Optimal Samples Selector — Results\n';
+      text += 'Parameters: m=' + document.getElementById('param-m').value + ', n=' + document.getElementById('param-n').value + ', k=' + document.getElementById('param-k').value + ', j=' + document.getElementById('param-j').value + ', s=' + document.getElementById('param-s').value + ', at least=' + (document.getElementById('param-atleast').value || 1) + '\n';
+      text += 'Algorithm: ' + currentResult.method + '\n';
+      text += 'Min groups: ' + currentResult.count + '\n\n';
+      text += currentResult.groups.map(function(g, i) { return (i+1) + '. [' + g.join(', ') + ']'; }).join('\n');
+      navigator.clipboard.writeText(text).then(function() {
+        showToast('Copied to clipboard', 'success');
+      }).catch(function() {
+        showToast('Failed to copy', 'error');
+      });
+    }
+
+    function copySelectedSamples() {
+      var text = '';
+      var modeEl = document.querySelector('input[name="mode"]:checked');
+      var mode = modeEl ? modeEl.value : 'random';
+      var n = parseInt(document.getElementById('param-n').value, 10) || 0;
+      if (currentResult && currentResult.samples && currentResult.samples.length) {
+        text = currentResult.samples.map(function(v, i) { return (i + 1) + '. ' + v; }).join('\n');
+      } else if (mode === 'input') {
+        var arr = [];
+        for (var i = 1; i <= n; i++) {
+          var inp = document.getElementById('user-input-' + i);
+          if (inp && inp.value !== '') arr.push(inp.value);
+        }
+        if (arr.length) text = arr.map(function(v, idx) { return (idx + 1) + '. ' + v; }).join('\n');
+      }
+      if (!text) {
+        showToast('Nothing to copy yet', 'info');
+        return;
+      }
+      navigator.clipboard.writeText(text).then(function() {
+        showToast('Samples copied', 'success');
+      }).catch(function() {
+        showToast('Failed to copy', 'error');
+      });
+    }
+
     function showTab(tab) {
       document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
       document.getElementById('main-tab').classList.add('hidden');
@@ -1308,12 +1579,12 @@
       if (tab === 'main') {
         document.querySelectorAll('.tab')[0].classList.add('active');
         document.getElementById('main-tab').classList.remove('hidden');
-        showToast('Switched to Calculate', 'info');
+        showToast('Switched to Main', 'info');
       } else {
         document.querySelectorAll('.tab')[1].classList.add('active');
         document.getElementById('database-tab').classList.remove('hidden');
         loadFileList();
-        showToast('Switched to History', 'info');
+        showToast('Switched to Data Base', 'info');
       }
     }
     
@@ -1325,14 +1596,14 @@
         try {
           data = JSON.parse(raw);
         } catch (_) {
-          throw new Error('History API returned non-JSON response.');
+          throw new Error('Files API returned non-JSON response.');
         }
         if (!response.ok) throw new Error(data && data.error ? data.error : ('HTTP ' + response.status));
         var list = document.getElementById('file-list');
         list.innerHTML = '';
         if (!data.files || data.files.length === 0) {
-          list.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text-muted);">No saved results yet.</div>';
-          showToast('No saved results yet', 'info');
+          list.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text-muted);">No stored runs yet.</div>';
+          showToast('No stored runs yet', 'info');
           return;
         }
         data.files.forEach(function(file) {
@@ -1346,7 +1617,7 @@
           };
           list.appendChild(div);
         });
-        showToast('History loaded (' + data.files.length + ')', 'success');
+        showToast('Data Base loaded (' + data.files.length + ')', 'success');
       } catch (err) { showError('Load history failed: ' + err.message); }
     }
     
@@ -1367,9 +1638,16 @@
         }
         if (!response.ok) throw new Error(data && data.error ? data.error : ('HTTP ' + response.status));
         if (data.error) return;
+        currentDbResult = data;
         document.getElementById('db-filename').textContent = fileName;
-        var groupsText = data.groups.map(function(g, i) { return (i+1) + '. [' + g.join(', ') + ']'; }).join('\n');
-        document.getElementById('db-results').value = 'params: m=' + data.m + ', n=' + data.n + ', k=' + data.k + ', j=' + data.j + ', s=' + data.s + '\nsamples: [' + data.samples.join(', ') + ']\ngroups: ' + data.count + '\n\n' + groupsText;
+        
+        var headerHtml = '<div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">';
+        headerHtml += '<div style="margin-bottom: 4px;"><strong>Params:</strong> m=' + data.m + ', n=' + data.n + ', k=' + data.k + ', j=' + data.j + ', s=' + data.s + (data.atLeast != null ? ', at least=' + data.atLeast : '') + (data.solveMode ? ', mode=' + data.solveMode : '') + (data.method ? ', method=' + data.method : '') + '</div>';
+        headerHtml += '<div style="margin-bottom: 4px;"><strong>Samples:</strong> [' + data.samples.join(', ') + ']</div>';
+        headerHtml += '<div><strong>Groups:</strong> ' + data.count + '</div>';
+        headerHtml += '</div>';
+        
+        document.getElementById('db-results').innerHTML = headerHtml + renderGroupsHtml(data.groups);
         showToast('Displayed: ' + fileName, 'success');
       } catch (err) { showError('Display failed: ' + err.message); }
     }
@@ -1396,8 +1674,9 @@
         if (!response.ok) throw new Error(data && data.error ? data.error : ('HTTP ' + response.status));
         if (data.error) return;
         selectedFile = null;
+        currentDbResult = null;
         document.getElementById('db-filename').textContent = '';
-        document.getElementById('db-results').value = '';
+        document.getElementById('db-results').innerHTML = '';
         loadFileList();
         showToast('Deleted: ' + fileName, 'success');
       } catch (err) { showError('Delete failed: ' + err.message); }
@@ -1436,27 +1715,13 @@
     }
     
     function printDbResults() {
-      var dbResults = document.getElementById('db-results').value;
+      if (!currentDbResult) return;
       var dbFilename = document.getElementById('db-filename').textContent;
-      if (!dbResults) return;
       showToast('Preparing print view...', 'info');
-      var lines = dbResults.split('\n');
-      var params = {}, samples = [], groups = [], count = 0;
-      lines.forEach(function(line) {
-        if (line.indexOf('params:') === 0) {
-          var match = line.match(/m=(\d+), n=(\d+), k=(\d+), j=(\d+), s=(\d+)/);
-          if (match) params = { m: match[1], n: match[2], k: match[3], j: match[4], s: match[5] };
-        } else if (line.indexOf('samples:') === 0) {
-          var m = line.match(/\[(.*)\]/);
-          if (m) samples = m[1].split(',').map(function(s) { return s.trim(); });
-        } else if (line.indexOf('groups:') === 0) {
-          var m2 = line.match(/groups: (\d+)/);
-          if (m2) count = m2[1];
-        } else if (/^\d+\. \[.*\]$/.test(line)) {
-          var m3 = line.match(/^\d+\. \[(.*)\]$/);
-          if (m3) groups.push(m3[1].split(',').map(function(s) { return s.trim(); }));
-        }
-      });
+      var params = { m: currentDbResult.m, n: currentDbResult.n, k: currentDbResult.k, j: currentDbResult.j, s: currentDbResult.s };
+      var samples = currentDbResult.samples;
+      var groups = currentDbResult.groups;
+      var count = currentDbResult.count;
       var fileInfo = '';
       if (dbFilename) {
         var parts = dbFilename.split('-');
@@ -1466,12 +1731,25 @@
       if (params.j && params.s) conditionDesc = 'Each j=' + params.j + ' combination requires at least ONE s=' + params.s + ' combination to be covered';
       var printContent = document.createElement('div');
       printContent.className = 'print-section';
-      printContent.innerHTML = '<div class="print-title">Optimal Samples Selection System - Database Results</div>' + (dbFilename ? '<div class="print-filename">Filename: ' + dbFilename + (fileInfo ? ' (' + fileInfo + ')' : '') + '</div>' : '') + (Object.keys(params).length ? '<div class="print-param">m=' + params.m + ', n=' + params.n + ', k=' + params.k + ', j=' + params.j + ', s=' + params.s + '</div>' : '') + (conditionDesc ? '<div class="print-param">' + conditionDesc + '</div>' : '') + (samples.length ? '<div class="print-samples">' + samples.map(function(v, i) { return (i+1) + 'st # ' + v; }).join('<br>') + '</div>' : '') + '<div class="print-results">Groups: ' + count + '<br><br>' + groups.map(function(g, i) { return (i+1) + '. [' + g.join(', ') + ']'; }).join('<br>') + '</div><div class="print-filename">Generated: ' + new Date().toLocaleString() + '</div>';
+      printContent.innerHTML = '<div class="print-title">Optimal Samples Selector — Database Results</div>' + (dbFilename ? '<div class="print-filename">Filename: ' + dbFilename + (fileInfo ? ' (' + fileInfo + ')' : '') + '</div>' : '') + (Object.keys(params).length ? '<div class="print-param">m=' + params.m + ', n=' + params.n + ', k=' + params.k + ', j=' + params.j + ', s=' + params.s + (currentDbResult.atLeast != null ? ', at least=' + currentDbResult.atLeast : '') + '</div>' : '') + (conditionDesc ? '<div class="print-param">' + conditionDesc + '</div>' : '') + (samples.length ? '<div class="print-samples">' + samples.map(function(v, i) { return (i+1) + 'st # ' + v; }).join('<br>') + '</div>' : '') + '<div class="print-results">Groups: ' + count + '<br><br>' + groups.map(function(g, i) { return (i+1) + '. [' + g.join(', ') + ']'; }).join('<br>') + '</div><div class="print-filename">Generated: ' + new Date().toLocaleString() + '</div>';
       document.body.appendChild(printContent);
       window.print();
       setTimeout(function() { document.body.removeChild(printContent); }, 100);
     }
     
+    function copyDbResults() {
+      if (!currentDbResult) return;
+      var text = 'Optimal Samples Selector — Database Results\n';
+      text += 'Parameters: m=' + currentDbResult.m + ', n=' + currentDbResult.n + ', k=' + currentDbResult.k + ', j=' + currentDbResult.j + ', s=' + currentDbResult.s + (currentDbResult.atLeast != null ? ', at least=' + currentDbResult.atLeast : '') + '\n';
+      text += 'Min groups: ' + currentDbResult.count + '\n\n';
+      text += currentDbResult.groups.map(function(g, i) { return (i+1) + '. [' + g.join(', ') + ']'; }).join('\n');
+      navigator.clipboard.writeText(text).then(function() {
+        showToast('Copied to clipboard', 'success');
+      }).catch(function() {
+        showToast('Failed to copy', 'error');
+      });
+    }
+
     function showError(message) {
       var el = document.getElementById('error-message');
       if (el) { el.textContent = message; el.classList.remove('hidden'); }

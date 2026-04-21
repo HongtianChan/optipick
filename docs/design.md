@@ -1,29 +1,15 @@
-# 设计说明
+# Design Notes
 
-## 风格参考
+## Visual direction
+The UI aims for a clean, modern dashboard style:
 
-参考 **Ben Tossell**（https://www.bentossell.com/）：终端/CLI 风格、深色背景、等宽字体、命令提示符、macOS 风格窗口按钮。本项目沿用该风格做 Web UI。
+- clear section hierarchy
+- low-noise color palette
+- high readability for parameter-heavy workflows
 
-## 配色（本项目实际使用）
+## Practical principles
 
-基于 GitHub Dark，用于终端窗口、输入框、按钮等。
-
-| 用途 | 色值 |
-|------|------|
-| 主背景 | `#0d1117` |
-| 窗口/区块背景 | `#161b22`、`#21262d` |
-| 主边框 | `#30363d`，hover `#484f58` |
-| 主文字 | `#c9d1d9`，次要 `#8b949e`，占位符 `#6e7681` |
-| 提示/命令/链接 | `#58a6ff` |
-| 输出/成功 | `#7ee787` |
-| 错误 | `#f85149`，警告 `#d29922` |
-| 主按钮 | 默认 `#238636`，hover `#2ea043` |
-| 危险按钮 | 默认 `#da3633`，hover `#f85149` |
-| 窗口红黄绿 | `#ff5f56` / `#ffbd2e` / `#27c93f` |
-| 焦点/高亮 | `rgba(88,166,255,0.15)` 等 |
-
-点击反馈为 8bit 风格蓝色粒子（`#58a6ff` 系）。
-
-## 原则
-
-极简、功能性明确、全程保持终端风格、交互有即时反馈。
+- Keep primary actions obvious (`Execute`, `Store`, `Clear`).
+- Keep explanatory text concise and close to inputs.
+- Keep history/database operations discoverable but not intrusive.
+- Prioritize predictable behavior over decorative complexity.

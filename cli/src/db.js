@@ -15,10 +15,13 @@ function generateFileName(m, n, k, j, s, runCount, resultCount) {
   return `${m}-${n}-${k}-${j}-${s}-${runCount}-${resultCount}`;
 }
 
-// 保存结果到文件
-function saveResult(m, n, k, j, s, samples, groups) {
+// 保存结果到文件（JSON 内含 atLeast / solveMode / method 便于复现与对照作业例）
+function saveResult(m, n, k, j, s, samples, groups, meta = {}) {
   ensureDbDir();
-  
+  const atLeast = meta.atLeast != null ? meta.atLeast : 1;
+  const solveMode = meta.solveMode || 'balanced';
+  const method = meta.method != null ? meta.method : null;
+
   // 查找已有的运行次数
   const pattern = `${m}-${n}-${k}-${j}-${s}-`;
   const files = fs.readdirSync(DB_DIR).filter(f => f.startsWith(pattern));
@@ -37,6 +40,9 @@ function saveResult(m, n, k, j, s, samples, groups) {
   
   const content = {
     m, n, k, j, s,
+    atLeast,
+    solveMode,
+    method,
     samples,
     groups: groups.map(g => g.sort((a, b) => a - b)),
     count: groups.length,

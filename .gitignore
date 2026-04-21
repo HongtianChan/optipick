@@ -49,6 +49,9 @@ tmp/
 temp/
 *.tmp
 
+# PDF page renders (local preview only)
+docs/project-spec/_pdf-png/
+
 .env*.local
 
 # Local-only (course USB / reports / notes — keep on disk, not on GitHub)

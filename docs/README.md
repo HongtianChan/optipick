@@ -1,27 +1,25 @@
-# 文档目录
+# Documentation Index
 
-## 部署
+## Deployment
 
-- [Vercel 部署指南](./vercel-deployment-guide.md) - Vercel + Supabase 部署流程、工作流程、故障排查
+- [Vercel deployment guide](./vercel-deployment-guide.md) - End-to-end Vercel + Supabase setup, release flow, and troubleshooting.
 
-## 网站与费用
+## Website Operations
 
-- [网站常见问题](./website-faq.md) - 是否永久、免费额度、域名、数据备份
-- [中国大陆访问](./china-access-solutions.md) - 国内无法访问时的方案
+- [Website FAQ](./website-faq.md) - Domain, free-tier concerns, and data backup notes.
+- [Mainland China access options](./china-access-solutions.md) - Practical access workarounds for users in mainland China.
 
-## 设计与使用
+## Product Design & Usage
 
-- [设计说明](./design.md) - 风格参考（Ben Tossell）、配色与原则
-- [使用示例](./usage-example.md) - 以 E.g.5 为例的完整操作步骤
+- [Design notes](./design.md) - Visual direction, color choices, and UI principles.
+- [Usage example](./usage-example.md) - Step-by-step walkthrough using the E.g.5 scenario.
 
-## 开发历程
+## Development Journey
 
-- [开发历程](./development-journey.md) - 完整记录：页面设计、算法设计、性能优化、灵感来源
+- [Development journey](./development-journey.md) - Iteration history across UI, algorithm, and performance work.
 
-## 项目与算法
+## Project & Algorithm
 
-- [项目说明](./project-spec/Group%20Project%20说明.md) - 需求、参数、示例
-- [算法与 API 简介](./algorithm-and-api-brief.md) - algorithm.js 函数、调用的 API、系统流程（汇报用）
-- [算法优化说明](./algorithm-optimizations.md) - 分层 + 启发式搜索优化（覆盖预计算、冗余移除、下界剪枝）
-- [优化讨论总结](./讨论总结-算法优化与分层启发式.md) - 优化思路来源与代码位置对照
-- [对话记录](./对话记录.md) - 开发中的重要决策与讨论
+- [Group project notes (English)](./project-spec/group-project-notes.md) - Requirements, parameter definitions, and worked examples.
+- [Algorithm and API brief](./algorithm-and-api-brief.md) - `algorithm.js` functions, API endpoints, and runtime flow.
+- [Algorithm optimizations](./algorithm-optimizations.md) - Layered solving and heuristic acceleration notes.

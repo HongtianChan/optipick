@@ -1,14 +1,14 @@
-# 本地离线模式
+# Local Offline Mode
 
-这个模式用于用户在自己电脑上运行系统，数据只写入本机，不经过团队后端数据库。
+Use this mode to run Optipick entirely on your own machine. Results are written to a local file database, not the shared cloud backend.
 
-## 你会得到什么
+## What you get
 
-- 本地网页：`http://localhost:3000`
-- 本地历史记录：保存在你的电脑目录 `~/.optimal-samples-selector/db/`
-- 本地导出：History 里的 `Export DB` 会导出你自己电脑的数据
+- Local web app at `http://localhost:3000`
+- Local history in `~/.optimal-samples-selector/db/`
+- Local export from **History → Export DB**
 
-## 一次性准备
+## One-time setup
 
 ```bash
 cd optimal-samples-selector
@@ -18,42 +18,42 @@ npm install
 cd ..
 ```
 
-> 如果当前目录不在项目旁边，再改用你自己的绝对路径（例如：`cd "/path/to/optimal-samples-selector"`）。
+> If your shell is not already in the project folder, use your own absolute path instead (for example: `cd "/path/to/optimal-samples-selector"`).
 
-## 启动本地网页版
+## Start local web mode
 
 ```bash
 npm run local:web
 ```
 
-打开浏览器访问：`http://localhost:3000`
+Open `http://localhost:3000` in your browser.
 
-如果 3000 端口被占用，可改端口：
+If port `3000` is busy, choose another port:
 
 ```bash
 node cli/index.js web -p 3001
 ```
 
-然后访问：`http://localhost:3001`
+Then open `http://localhost:3001`.
 
-## 本地数据位置
+## Local data location
 
-- 目录：`~/.optimal-samples-selector/db/`
-- 命名：`m-n-k-j-s-x-y`
-- 含义：`x` 为运行次数，`y` 为结果组数
+- Directory: `~/.optimal-samples-selector/db/`
+- Filename pattern: `m-n-k-j-s-x-y`
+- Meaning: `x` = run count, `y` = number of output groups
 
-## 常用本地命令
+## Common local commands
 
 ```bash
-# 跑一次并保存到本机 DB
+# Solve once and save to local DB
 npm run local:solve
 
-# 查看本机已有记录
+# List local records
 node cli/index.js list
 ```
 
-## 说明
+## Notes
 
-- 本地模式不会调用 Supabase，因此不会受 RLS、网络或云端额度影响。
-- 每位成员看到的 History 只属于自己电脑，天然隔离，适合并行做实验和准备展示。
-- 前端入口已迁移为 `web-ui/index.html`，本地 server 与 Vercel 路径已同步，不再依赖根目录 `index.html`。
+- Local mode does not call Supabase, so it is not affected by RLS policies, network issues, or cloud quotas.
+- Each teammate only sees records from their own machine, which is useful for parallel experiments and demo preparation.
+- The frontend entry is `web-ui/index.html`; local server paths and Vercel paths are aligned.

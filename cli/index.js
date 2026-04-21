@@ -75,7 +75,11 @@ program
     });
     
     if (save) {
-      const fileName = saveResult(m, n, k, j, s, result.samples, result.groups);
+      const fileName = saveResult(m, n, k, j, s, result.samples, result.groups, {
+        atLeast,
+        solveMode: 'balanced',
+        method: result.method
+      });
       console.log(`\n已保存到: ${fileName}`);
     }
   });
