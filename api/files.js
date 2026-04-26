@@ -4,6 +4,14 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
+function unavailableResponse(message) {
+  return {
+    files: [],
+    unavailable: true,
+    error: message
+  };
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -21,7 +29,8 @@ module.exports = async (req, res) => {
   
   try {
     if (!supabase) {
-      throw new Error('Supabase not configured');
+      res.status(200).json(unavailableResponse('Cloud history is not configured for this deployment.'));
+      return;
     }
     
     const { data, error } = await supabase
@@ -32,6 +41,6 @@ module.exports = async (req, res) => {
     if (error) throw error;
     res.status(200).json({ files: data.map(row => row.file_name) });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(200).json(unavailableResponse('Cloud history is currently unavailable. Solve and verify still work.'));
   }
 };

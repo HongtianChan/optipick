@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const { solveOptimalSamples } = require('../api/algorithm');
 const { evaluateCoverage, normalizeGroups, verifyCoverageOrThrow } = require('../api/verify-core');
 const solveHandler = require('../api/solve');
+const filesHandler = require('../api/files');
 const { readDbFile, deleteDbFile } = require('../cli/src/db');
 
 function mockResponse() {
@@ -89,4 +90,15 @@ test('solve API rejects forged precomputed saves before persistence', async () =
 test('local DB rejects path traversal filenames', () => {
   assert.throws(() => readDbFile('../secret'), /Invalid DB file name/);
   assert.throws(() => deleteDbFile('45-8-6-6-5-1-4.json'), /Invalid DB file name/);
+});
+
+test('files API degrades gracefully when cloud history is unavailable', async () => {
+  const req = { method: 'GET' };
+  const res = mockResponse();
+
+  await filesHandler(req, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual(res.payload.files, []);
+  assert.equal(res.payload.unavailable, true);
 });

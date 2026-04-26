@@ -1656,6 +1656,11 @@
         if (!response.ok) throw new Error(data && data.error ? data.error : ('HTTP ' + response.status));
         var list = document.getElementById('file-list');
         list.innerHTML = '';
+        if (data.unavailable) {
+          list.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text-muted);">' + escapeHtml(data.error || 'Cloud history is unavailable.') + '</div>';
+          showToast('Cloud history unavailable', 'info');
+          return;
+        }
         if (!data.files || data.files.length === 0) {
           list.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text-muted);">No stored runs yet.</div>';
           showToast('No stored runs yet', 'info');
@@ -1741,6 +1746,10 @@
       try {
         var response = await fetch(API_BASE + '/api/files');
         var data = await response.json();
+        if (data.unavailable) {
+          addTerminalOutput(data.error || 'Cloud history is unavailable.', 'info');
+          return;
+        }
         if (data.files && data.files.length > 0) addTerminalOutput('Files: ' + data.files.join(', '), 'info');
       } catch (err) { addTerminalOutput('Error: ' + err.message, 'error'); }
     }
@@ -1749,6 +1758,10 @@
       try {
         var response = await fetch(API_BASE + '/api/export');
         var data = await response.json();
+        if (data.unavailable) {
+          showToast(data.error || 'Cloud history is unavailable.', 'info');
+          return;
+        }
         if (data.error) {
           showError(data.error);
           return;
