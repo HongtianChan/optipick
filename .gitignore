@@ -30,6 +30,9 @@ db/
 *.db
 *.json
 
+# Local image references, not part of the GitHub hand-in repo
+assets/images/
+
 # Build
 dist/
 build/
