@@ -127,8 +127,6 @@ Core logic lives in **`api/algorithm.js`** (Vercel) and **`cli/src/algorithm.js`
 
 Pipeline in one sentence: pick **n** → every **k**-subset of those samples is a candidate → each **j**-subset of the **n** samples is a constraint → choose **fewest** candidates that jointly satisfy the rules.
 
-![Algorithm overview — from n samples to set cover](./docs/readme-assets/algorithm-overview.svg)
-
 ```mermaid
 flowchart LR
   P["Pick n samples<br/>from 1..m"] --> K["All k-subsets<br/>C(n,k) candidates"]
