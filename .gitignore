@@ -17,6 +17,7 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+.cursorrules
 *.swp
 *.swo
 *~
@@ -54,6 +55,11 @@ temp/
 
 # PDF page renders (local preview only)
 docs/project-spec/_pdf-png/
+docs/project-spec/Group Project(26).pdf
+docs/project-spec/Group Project 说明.md
+docs/对话记录.md
+docs/讨论总结-算法优化与分层启发式.md
+scripts/setup-cursor-rules.sh
 
 .env*.local
 
