@@ -30,15 +30,15 @@ Subsampling should stay **fair and rule-driven**. This repository ships a **web 
 
 ```
 optimal-samples-selector/
-├── api/           # Vercel serverless (/api/solve, optional Supabase-backed routes)
-├── cli/           # Local static server + Commander CLI + local algorithm
-├── web-ui/        # Static frontend
-├── docs/          # Deploy, local mode, course notes
-├── test/          # Node.js regression tests
-├── submission/    # Local-only course hand-in package (ignored by git)
-├── scripts/
-├── package.json   # npm run local:web | local:solve | test
-└── vercel.json
+├── api/            # Vercel serverless APIs and shared solver/verification logic
+├── cli/            # Local static server, Commander CLI, and local wrappers
+├── database/       # Optional Supabase setup SQL
+├── docs/           # Public project, algorithm, deployment, and usage docs
+├── scripts/        # Utility scripts for evidence/report generation
+├── test/           # Node.js regression tests
+├── web-ui/         # Static frontend
+├── package.json    # npm run local:web | local:solve | test
+└── vercel.json     # Vercel routing/build configuration
 ```
 
 ---
