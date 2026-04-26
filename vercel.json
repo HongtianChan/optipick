@@ -10,7 +10,7 @@
       "destination": "/web-ui/index.html"
     },
     {
-      "source": "/((?!api/).*)",
+      "source": "/((?!api/|_vercel/).*)",
       "destination": "/web-ui/index.html"
     }
   ]
