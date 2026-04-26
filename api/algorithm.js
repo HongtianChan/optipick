@@ -401,7 +401,7 @@ function backtrackSetCover(nSamples, k, j, s, atLeast = 1, maxGroups = Infinity)
   const maxSingleCover = Math.max(...sortedCoverage.map(list => list.length), 1);
 
   // Greedy upper bound: the optimum cannot be worse than this solution.
-  const greedySolution = greedySetCover(nSamples, k, j, s, atLeast);
+  const greedySolution = greedySetCover(nSamples, k, j, s, atLeast, 500);
   let bestCount = Math.min(greedySolution.length, maxGroups);
   let bestSolution = greedySolution.map(g => [...g]);
 
@@ -418,8 +418,6 @@ function backtrackSetCover(nSamples, k, j, s, atLeast = 1, maxGroups = Infinity)
     const lb = Math.ceil(uncovered / maxSingleCover);
     if (selected.length + lb >= bestCount) return;
 
-    backtrack(selected, covered, startIdx + 1);
-
     const currentGroup = sortedGroups[startIdx];
     const newCovered = new Set(covered);
     for (const jIdx of sortedCoverage[startIdx]) newCovered.add(jIdx);
@@ -429,6 +427,8 @@ function backtrackSetCover(nSamples, k, j, s, atLeast = 1, maxGroups = Infinity)
       backtrack(selected, newCovered, startIdx + 1);
       selected.pop();
     }
+
+    backtrack(selected, covered, startIdx + 1);
   }
 
   backtrack([], new Set(), 0);
@@ -449,7 +449,7 @@ function solveOptimalSamples(m, n, k, j, s, atLeast = 1, randomSamples = null, s
   }
   
   const totalKGroups = combination(n, k);
-  const EXACT_THRESHOLD = 300;
+  const EXACT_THRESHOLD = 30;
   const REDUNDANT_REMOVAL_THRESHOLD = 1500;
   const QUALITY_REDUNDANT_REMOVAL_THRESHOLD = 20000;
   const useExact = totalKGroups <= EXACT_THRESHOLD;

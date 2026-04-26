@@ -56,7 +56,7 @@ Where used:
 
 Why it matters:
 
-- The branch decision is based on `C(n,k) <= 300`.
+- The branch decision is based on `C(n,k) <= 30`.
 
 ---
 
@@ -489,7 +489,7 @@ Guarantee:
 
 Where used:
 
-- `solveOptimalSamples()` when `C(n,k) <= 300`.
+- `solveOptimalSamples()` when `C(n,k) <= 30`.
 
 ---
 
@@ -513,7 +513,7 @@ totalKGroups = combination(n, k)
 
 3. Choose solving branch:
 
-- If `totalKGroups <= 300`:
+- If `totalKGroups <= 30`:
   - run `backtrackSetCover()`
   - method name: `backtrack`
 
@@ -546,7 +546,7 @@ totalKGroups = combination(n, k)
 
 Important thresholds:
 
-- `EXACT_THRESHOLD = 300`
+- `EXACT_THRESHOLD = 30`
 - `REDUNDANT_REMOVAL_THRESHOLD = 1500`
 - `QUALITY_REDUNDANT_REMOVAL_THRESHOLD = 20000`
 

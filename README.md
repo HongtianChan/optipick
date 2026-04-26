@@ -136,7 +136,7 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-  Q{"C(n,k) <= 300 ?"}
+  Q{"C(n,k) <= 30 ?"}
   Q -->|Yes| E["Backtracking<br/>exact minimum"]
   Q -->|No| H["GRASP-style greedy<br/>per solveMode budget"]
   H --> R["May shrink cover<br/>redundant removal"]
@@ -148,13 +148,13 @@ After fixing **n** sample IDs from **m**, enumerate every candidate **k**-subset
 
 ### Exact mode
 
-If `C(n,k) ≤ 300`, the solver uses **backtracking** on coverage-deduplicated candidates, seeded with a greedy upper bound, ordered by how many uncovered **j**-constraints each candidate hits, with simple lower-bound pruning. Intended for small combinatorial spaces only.
+If `C(n,k) ≤ 30`, the solver uses **backtracking** on coverage-deduplicated candidates, seeded with a greedy upper bound, ordered by how many uncovered **j**-constraints each candidate hits, with simple lower-bound pruning. Intended for very small combinatorial spaces only, so hosted solves do not time out.
 
 ### Heuristic mode
 
-If `C(n,k) > 300`, a **time-bounded GRASP-style** greedy (`greedySetCover`) runs with per-`solveMode` wall clocks (`fast` ≈ 2.2s, `balanced` ≈ 3.5s, `quality` ≈ 5.5s in the GRASP phase). A **fast path** exists when `solveMode === fast`, `j === k`, `s === k - 1`, `atLeast === 1`, and `C(n,k) ≥ 5000` (`fastRadiusCoverHeuristic`). **Redundant-group removal** may run afterward when `C(n,k)` is below internal cost thresholds.
+If `C(n,k) > 30`, a **time-bounded GRASP-style** greedy (`greedySetCover`) runs with per-`solveMode` wall clocks (`fast` ≈ 2.2s, `balanced` ≈ 3.5s, `quality` ≈ 5.5s in the GRASP phase). A **fast path** exists when `solveMode === fast`, `j === k`, `s === k - 1`, `atLeast === 1`, and `C(n,k) ≥ 5000` (`fastRadiusCoverHeuristic`). **Redundant-group removal** may run afterward when `C(n,k)` is below internal cost thresholds.
 
-GRASP does **not** certify a global optimum; use the exact branch when `C(n,k) ≤ 300` if you need a certified minimum under this codebase’s rules.
+GRASP does **not** certify a global optimum; use the exact branch when `C(n,k) ≤ 30` if you need a certified minimum under this codebase’s rules.
 
 ---
 
