@@ -745,7 +745,6 @@
         <button class="help-btn" onclick="showHelp()" title="Help" aria-label="Help">?</button>
       </div>
       <h1>Optimal Samples Selector</h1>
-      <p>Set parameters, choose samples, <strong>Execute</strong>, then <strong>Store</strong> if you want to keep the run.</p>
     </header>
     
     <nav class="tabs">
@@ -813,7 +812,6 @@
       
       <div class="card">
         <div class="card-title">How to pick samples</div>
-        <p class="card-desc">Either let the system pick n numbers at random, or enter them yourself.</p>
         <div class="mode-selector">
           <label>
             <input type="radio" name="mode" value="random" checked onchange="toggleInputMode()">
@@ -850,8 +848,7 @@
           <div class="card-title" style="margin-bottom: 0;">Selected samples</div>
           <button type="button" class="btn-print" onclick="copySelectedSamples()">Copy</button>
         </div>
-        <p class="card-desc">The n numbers used in this run (filled after Execute, or from manual input).</p>
-        <div id="values-display" class="samples-display" data-placeholder="Run Execute to see the chosen n numbers.&#10;If you use “Input n manually”, your entries appear here."></div>
+        <div id="values-display" class="samples-display" data-placeholder="No samples yet"></div>
       </div>
       
       <div class="card">
@@ -863,14 +860,12 @@
           <div class="results-meta-title" id="meta-title"></div>
           <div class="results-meta-desc" id="meta-desc"></div>
         </div>
-        <div id="results" class="results-box" data-placeholder="Run Execute to see minimum groups and group contents"></div>
+        <div id="results" class="results-box" data-placeholder="No result yet"></div>
         <div style="margin-top: 12px; display: flex; gap: 8px;">
           <button type="button" class="btn-print" onclick="printResults()">Print</button>
           <button type="button" class="btn-print" onclick="copyResults()">Copy</button>
-          <button type="button" class="btn-print" id="btn-load-candidate" onclick="loadCurrentAsCandidate()" disabled>Load Current</button>
           <button type="button" class="btn-print" id="btn-verify" onclick="verifyCandidateGroups()" disabled>Verify Candidate</button>
         </div>
-        <textarea id="verify-input" style="margin-top: 10px; width: 100%; min-height: 90px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--text); padding: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.82rem;" placeholder="Paste candidate groups as JSON, e.g. [[1,2,3,4,5,6],[1,2,3,4,5,7]]"></textarea>
         <div id="verify-summary" style="margin-top: 10px; color: var(--text-muted); font-size: 0.92rem;"></div>
       </div>
       
@@ -1190,10 +1185,6 @@
         }
         var btnVerify = document.getElementById('btn-verify');
         if (btnVerify) btnVerify.disabled = true;
-        var btnLoadCandidate = document.getElementById('btn-load-candidate');
-        if (btnLoadCandidate) btnLoadCandidate.disabled = true;
-        var verifyInput = document.getElementById('verify-input');
-        if (verifyInput) verifyInput.value = '';
         var verifySummary = document.getElementById('verify-summary');
         if (verifySummary) verifySummary.textContent = '';
       });
@@ -1285,13 +1276,9 @@
       }
       var btnVerify = document.getElementById('btn-verify');
       if (btnVerify) btnVerify.disabled = true;
-      var btnLoadCandidate = document.getElementById('btn-load-candidate');
-      if (btnLoadCandidate) btnLoadCandidate.disabled = true;
-      var verifyInput = document.getElementById('verify-input');
-      if (verifyInput) verifyInput.value = '';
       var verifySummary = document.getElementById('verify-summary');
       if (verifySummary) verifySummary.textContent = '';
-      showToast('Executing, please wait...', 'info', 2200);
+      showToast('Executing...', 'info', 2200);
       var startTime = performance.now();
       
       try {
@@ -1344,10 +1331,6 @@
         document.getElementById('btn-store').disabled = false;
         var btnVerifyOk = document.getElementById('btn-verify');
         if (btnVerifyOk) btnVerifyOk.disabled = false;
-        var btnLoadCandidateOk = document.getElementById('btn-load-candidate');
-        if (btnLoadCandidateOk) btnLoadCandidateOk.disabled = false;
-        var verifyInputOk = document.getElementById('verify-input');
-        if (verifyInputOk) verifyInputOk.value = JSON.stringify(result.groups, null, 2);
         var verifySummaryOk = document.getElementById('verify-summary');
         if (verifySummaryOk) verifySummaryOk.textContent = '';
         stopProgress(true, result.calculationTime);
@@ -1437,24 +1420,11 @@
       }
     }
 
-    function loadCurrentAsCandidate() {
-      if (!currentResult || !Array.isArray(currentResult.groups) || !currentResult.groups.length) {
-        showError('Run Execute first');
-        showToast('Run Execute first', 'error');
-        return;
-      }
-      var input = document.getElementById('verify-input');
-      if (input) input.value = JSON.stringify(currentResult.groups, null, 2);
-      showToast('Loaded current groups as candidate', 'info');
-    }
-
     function parseCandidateGroups() {
-      var input = document.getElementById('verify-input');
-      var raw = input ? input.value.trim() : '';
-      if (!raw) throw new Error('Paste candidate groups JSON first');
-      var parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed) || !parsed.length) throw new Error('candidate groups must be a non-empty JSON array');
-      return parsed;
+      if (!currentResult || !Array.isArray(currentResult.groups) || !currentResult.groups.length) {
+        throw new Error('Run Execute first');
+      }
+      return currentResult.groups;
     }
 
     async function verifyCandidateGroups() {
@@ -1475,7 +1445,7 @@
         candidateGroups = parseCandidateGroups();
       } catch (parseErr) {
         showError(parseErr.message);
-        showToast('Invalid candidate groups JSON', 'error');
+        showToast('Verify unavailable', 'error');
         return;
       }
       if (btn) {
@@ -1552,10 +1522,6 @@
       }
       var btnVerify = document.getElementById('btn-verify');
       if (btnVerify) btnVerify.disabled = true;
-      var btnLoadCandidate = document.getElementById('btn-load-candidate');
-      if (btnLoadCandidate) btnLoadCandidate.disabled = true;
-      var verifyInput = document.getElementById('verify-input');
-      if (verifyInput) verifyInput.value = '';
       var verifySummary = document.getElementById('verify-summary');
       if (verifySummary) verifySummary.textContent = '';
       validateParamsLive();
