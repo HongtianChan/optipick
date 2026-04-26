@@ -4,14 +4,15 @@ const path = require('path');
 const url = require('url');
 const { solveOptimalSamples } = require('./algorithm');
 const { saveResult, listDbFiles, readDbFile, deleteDbFile } = require('./db');
-const { evaluateCoverage, normalizeGroups: normalizeVerifyGroups, validateCandidate } = require('./verify');
+const { evaluateCoverage, normalizeGroups: normalizeVerifyGroups, normalizeSamples, validateCandidate, verifyCoverageOrThrow } = require('./verify');
+const MAX_BODY_BYTES = 1024 * 1024;
 
-function normalizeGroups(groups) {
-  if (!Array.isArray(groups)) throw new Error('groups must be an array');
-  return groups.map((g) => {
-    if (!Array.isArray(g) || g.length === 0) throw new Error('each group must be a non-empty array');
-    return [...g];
-  });
+function appendBodyChunk(current, chunk) {
+  const next = current + chunk.toString();
+  if (Buffer.byteLength(next, 'utf8') > MAX_BODY_BYTES) {
+    throw new Error('Request body too large');
+  }
+  return next;
 }
 
 function start(port = 3000) {
@@ -30,10 +31,13 @@ function start(port = 3000) {
       return;
     }
     
-    // API 路由
+    // API routes
     if (pathname === '/api/solve' && req.method === 'POST') {
       let body = '';
-      req.on('data', chunk => { body += chunk.toString(); });
+      req.on('data', chunk => {
+        try { body = appendBodyChunk(body, chunk); }
+        catch (error) { req.destroy(error); }
+      });
       req.on('end', () => {
         try {
           const params = JSON.parse(body);
@@ -41,11 +45,11 @@ function start(port = 3000) {
           const solveStart = Date.now();
           let result;
           if (precomputed && Array.isArray(precomputed.groups) && Array.isArray(precomputed.samples)) {
-            const normalizedGroups = normalizeGroups(precomputed.groups);
+            const verified = verifyCoverageOrThrow(precomputed.samples, precomputed.groups, k, j, s, atLeast);
             result = {
-              samples: precomputed.samples,
-              groups: normalizedGroups,
-              count: precomputed.count || normalizedGroups.length,
+              samples: verified.samples,
+              groups: verified.groups,
+              count: verified.groups.length,
               method: precomputed.method || 'unknown'
             };
           } else {
@@ -83,20 +87,23 @@ function start(port = 3000) {
 
     if (pathname === '/api/verify' && req.method === 'POST') {
       let body = '';
-      req.on('data', chunk => { body += chunk.toString(); });
+      req.on('data', chunk => {
+        try { body = appendBodyChunk(body, chunk); }
+        catch (error) { req.destroy(error); }
+      });
       req.on('end', () => {
         try {
           const params = JSON.parse(body);
           const { k, j, s, atLeast = 1, samples, groups } = params;
-          if (!Array.isArray(samples) || !samples.length) throw new Error('samples must be a non-empty array');
           if (!Array.isArray(groups) || !groups.length) throw new Error('groups must be a non-empty array');
           if (!Number.isInteger(k) || k <= 0) throw new Error('k must be a positive integer');
           if (!Number.isInteger(j) || !Number.isInteger(s) || j <= 0 || s <= 0) {
             throw new Error('j and s must be positive integers');
           }
+          const normalizedSamples = normalizeSamples(samples);
           const normalized = normalizeVerifyGroups(groups);
-          validateCandidate(samples, normalized, k);
-          const check = evaluateCoverage(samples, normalized, j, s, atLeast);
+          validateCandidate(normalizedSamples, normalized, k);
+          const check = evaluateCoverage(normalizedSamples, normalized, j, s, atLeast);
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify(check));
         } catch (error) {
@@ -154,7 +161,10 @@ function start(port = 3000) {
     
     if (pathname === '/api/file' && req.method === 'DELETE') {
       let body = '';
-      req.on('data', chunk => { body += chunk.toString(); });
+      req.on('data', chunk => {
+        try { body = appendBodyChunk(body, chunk); }
+        catch (error) { req.destroy(error); }
+      });
       req.on('end', () => {
         try {
           const { fileName } = JSON.parse(body);
@@ -173,7 +183,7 @@ function start(port = 3000) {
       return;
     }
     
-    // 静态文件
+    // Static files
     if (pathname === '/favicon.svg' && req.method === 'GET') {
       const iconPath = path.join(__dirname, '../../web-ui/favicon.svg');
       if (!fs.existsSync(iconPath)) {
@@ -187,7 +197,7 @@ function start(port = 3000) {
       return;
     }
 
-    // 静态文件
+    // Static files
     if (pathname === '/' || pathname === '/index.html') {
       // Try multiple locations to support different repo layouts.
       const webUiPath = path.join(__dirname, '../../web-ui/index.html');
@@ -211,7 +221,7 @@ function start(port = 3000) {
   });
   
   server.listen(port, () => {
-    console.log(`服务器运行在 http://localhost:${port}`);
+    console.log(`Server running at http://localhost:${port}`);
   });
 }
 

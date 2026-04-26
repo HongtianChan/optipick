@@ -1,9 +1,10 @@
 {
   "name": "optipick",
   "version": "1.0.0",
-  "description": "Optimal Samples Selector - 最优样本选择系统",
+  "description": "Optimal Samples Selector",
   "scripts": {
     "build": "echo 'No build step required'",
+    "test": "node --test test/*.test.js",
     "local:web": "node cli/index.js web -p 3000",
     "local:solve": "node cli/index.js solve -m 45 -n 8 -k 6 -j 6 -s 5 --save"
   },

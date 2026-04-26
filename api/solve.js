@@ -1,9 +1,11 @@
 const { createClient } = require('@supabase/supabase-js');
 const { solveOptimalSamples } = require('./algorithm');
+const { verifyCoverageOrThrow } = require('./verify-core');
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+const MAX_BODY_BYTES = 1024 * 1024;
 
 function isPositiveInteger(value) {
   return Number.isInteger(value) && value > 0;
@@ -82,17 +84,6 @@ async function saveResult(m, n, k, j, s, samples, groups) {
   return fileName;
 }
 
-function normalizeGroups(groups) {
-  if (!Array.isArray(groups)) throw new Error('groups must be an array');
-  return groups.map((g) => {
-    if (!Array.isArray(g) || g.length === 0) throw new Error('each group must be a non-empty array');
-    for (const x of g) {
-      if (!isPositiveInteger(x)) throw new Error('group values must be positive integers');
-    }
-    return [...g];
-  });
-}
-
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -109,10 +100,13 @@ module.exports = async (req, res) => {
   }
   
   try {
+    if (typeof req.body === 'string' && Buffer.byteLength(req.body, 'utf8') > MAX_BODY_BYTES) {
+      return res.status(413).json({ error: 'Request body too large' });
+    }
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     const { m, n, k, j, s, atLeast = 1, samples, save, precomputed, solveMode } = body;
     
-    // 参数验证
+    // Parameter validation
     if (!m || !n || !k || !j || !s) {
       return res.status(400).json({ error: 'Missing required parameters: m, n, k, j, s' });
     }
@@ -123,11 +117,11 @@ module.exports = async (req, res) => {
     let result;
     const solveStart = Date.now();
     if (precomputed && Array.isArray(precomputed.groups) && Array.isArray(precomputed.samples)) {
-      const normalizedGroups = normalizeGroups(precomputed.groups);
+      const verified = verifyCoverageOrThrow(precomputed.samples, precomputed.groups, k, j, s, atLeast);
       result = {
-        samples: precomputed.samples,
-        groups: normalizedGroups,
-        count: precomputed.count || normalizedGroups.length,
+        samples: verified.samples,
+        groups: verified.groups,
+        count: verified.groups.length,
         method: precomputed.method || 'unknown'
       };
     } else {

@@ -1,7 +1,7 @@
 # Dependencies
 node_modules/
 package-lock.json
-# 但保留根目录和 api 目录的 package.json
+# Keep root and api package.json files.
 !package.json
 !api/package.json
 

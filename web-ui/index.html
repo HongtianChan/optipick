@@ -931,17 +931,23 @@
     let isCalculating = false;
     let currentDbResult = null;
 
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, function(ch) {
+        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch];
+      });
+    }
+
     function renderGroupsHtml(groups) {
       if (!groups || groups.length === 0) return '';
       return '<div class="groups-grid">' + groups.map(function(g, i) {
-        return '<div class="group-item"><span class="group-index">#' + (i + 1) + '</span><div class="group-values">' + g.map(function(v) { return '<span class="group-value">' + v + '</span>'; }).join('') + '</div></div>';
+        return '<div class="group-item"><span class="group-index">#' + (i + 1) + '</span><div class="group-values">' + g.map(function(v) { return '<span class="group-value">' + escapeHtml(v) + '</span>'; }).join('') + '</div></div>';
       }).join('') + '</div>';
     }
 
     function renderSamplesHtml(samples) {
       if (!samples || samples.length === 0) return '';
       return '<div class="samples-chips">' + samples.map(function(v, i) {
-        return '<div class="sample-chip"><span class="sample-ord">#' + (i + 1) + '</span><span class="sample-num">' + v + '</span></div>';
+        return '<div class="sample-chip"><span class="sample-ord">#' + (i + 1) + '</span><span class="sample-num">' + escapeHtml(v) + '</span></div>';
       }).join('') + '</div>';
     }
 
@@ -1575,7 +1581,7 @@
       }
       var printContent = document.createElement('div');
       printContent.className = 'print-section';
-      printContent.innerHTML = '<div class="print-title">Optimal Samples Selector — Results</div><div class="print-param"><strong>Parameters:</strong> m=' + m + ', n=' + n + ', k=' + k + ', j=' + j + ', s=' + s + ', at least=' + atLeast + '</div><div class="print-param"><strong>Condition:</strong> ' + conditionDesc + '</div><div class="print-samples"><strong>Selected samples:</strong><br>' + currentResult.samples.map(function(v, i) { return (i+1) + 'st # ' + v; }).join('<br>') + '</div><div class="print-results"><strong>Algorithm:</strong> ' + (currentResult.method === 'backtrack' ? 'Backtrack (Exact)' : (currentResult.method === 'grasp-quality' ? 'GRASP Quality' : (currentResult.method === 'grasp-fast' ? 'GRASP Fast' : 'GRASP Balanced'))) + '<br><strong>Min groups:</strong> ' + currentResult.count + '<br><br>' + currentResult.groups.map(function(g, i) { return (i+1) + '. [' + g.join(', ') + ']'; }).join('<br>') + '</div>' + (filename ? '<div class="print-filename">Filename: ' + filename + (fileInfo ? ' (' + fileInfo + ')' : '') + '</div>' : '') + '<div class="print-filename">Generated: ' + new Date().toLocaleString() + '</div>';
+      printContent.innerHTML = '<div class="print-title">Optimal Samples Selector — Results</div><div class="print-param"><strong>Parameters:</strong> m=' + escapeHtml(m) + ', n=' + escapeHtml(n) + ', k=' + escapeHtml(k) + ', j=' + escapeHtml(j) + ', s=' + escapeHtml(s) + ', at least=' + escapeHtml(atLeast) + '</div><div class="print-param"><strong>Condition:</strong> ' + escapeHtml(conditionDesc) + '</div><div class="print-samples"><strong>Selected samples:</strong><br>' + currentResult.samples.map(function(v, i) { return (i+1) + 'st # ' + escapeHtml(v); }).join('<br>') + '</div><div class="print-results"><strong>Algorithm:</strong> ' + escapeHtml(currentResult.method === 'backtrack' ? 'Backtrack (Exact)' : (currentResult.method === 'grasp-quality' ? 'GRASP Quality' : (currentResult.method === 'grasp-fast' ? 'GRASP Fast' : 'GRASP Balanced'))) + '<br><strong>Min groups:</strong> ' + escapeHtml(currentResult.count) + '<br><br>' + currentResult.groups.map(function(g, i) { return (i+1) + '. [' + g.map(escapeHtml).join(', ') + ']'; }).join('<br>') + '</div>' + (filename ? '<div class="print-filename">Filename: ' + escapeHtml(filename) + (fileInfo ? ' (' + escapeHtml(fileInfo) + ')' : '') + '</div>' : '') + '<div class="print-filename">Generated: ' + escapeHtml(new Date().toLocaleString()) + '</div>';
       document.body.appendChild(printContent);
       window.print();
       setTimeout(function() { document.body.removeChild(printContent); }, 100);
@@ -1691,9 +1697,9 @@
         document.getElementById('db-filename').textContent = fileName;
         
         var headerHtml = '<div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">';
-        headerHtml += '<div style="margin-bottom: 4px;"><strong>Params:</strong> m=' + data.m + ', n=' + data.n + ', k=' + data.k + ', j=' + data.j + ', s=' + data.s + (data.atLeast != null ? ', at least=' + data.atLeast : '') + (data.solveMode ? ', mode=' + data.solveMode : '') + (data.method ? ', method=' + data.method : '') + '</div>';
-        headerHtml += '<div style="margin-bottom: 4px;"><strong>Samples:</strong> [' + data.samples.join(', ') + ']</div>';
-        headerHtml += '<div><strong>Groups:</strong> ' + data.count + '</div>';
+        headerHtml += '<div style="margin-bottom: 4px;"><strong>Params:</strong> m=' + escapeHtml(data.m) + ', n=' + escapeHtml(data.n) + ', k=' + escapeHtml(data.k) + ', j=' + escapeHtml(data.j) + ', s=' + escapeHtml(data.s) + (data.atLeast != null ? ', at least=' + escapeHtml(data.atLeast) : '') + (data.solveMode ? ', mode=' + escapeHtml(data.solveMode) : '') + (data.method ? ', method=' + escapeHtml(data.method) : '') + '</div>';
+        headerHtml += '<div style="margin-bottom: 4px;"><strong>Samples:</strong> [' + (Array.isArray(data.samples) ? data.samples.map(escapeHtml).join(', ') : '') + ']</div>';
+        headerHtml += '<div><strong>Groups:</strong> ' + escapeHtml(data.count) + '</div>';
         headerHtml += '</div>';
         
         document.getElementById('db-results').innerHTML = headerHtml + renderGroupsHtml(data.groups);
@@ -1780,7 +1786,7 @@
       if (params.j && params.s) conditionDesc = 'Each j=' + params.j + ' combination requires at least ONE s=' + params.s + ' combination to be covered';
       var printContent = document.createElement('div');
       printContent.className = 'print-section';
-      printContent.innerHTML = '<div class="print-title">Optimal Samples Selector — Database Results</div>' + (dbFilename ? '<div class="print-filename">Filename: ' + dbFilename + (fileInfo ? ' (' + fileInfo + ')' : '') + '</div>' : '') + (Object.keys(params).length ? '<div class="print-param">m=' + params.m + ', n=' + params.n + ', k=' + params.k + ', j=' + params.j + ', s=' + params.s + (currentDbResult.atLeast != null ? ', at least=' + currentDbResult.atLeast : '') + '</div>' : '') + (conditionDesc ? '<div class="print-param">' + conditionDesc + '</div>' : '') + (samples.length ? '<div class="print-samples">' + samples.map(function(v, i) { return (i+1) + 'st # ' + v; }).join('<br>') + '</div>' : '') + '<div class="print-results">Groups: ' + count + '<br><br>' + groups.map(function(g, i) { return (i+1) + '. [' + g.join(', ') + ']'; }).join('<br>') + '</div><div class="print-filename">Generated: ' + new Date().toLocaleString() + '</div>';
+      printContent.innerHTML = '<div class="print-title">Optimal Samples Selector — Database Results</div>' + (dbFilename ? '<div class="print-filename">Filename: ' + escapeHtml(dbFilename) + (fileInfo ? ' (' + escapeHtml(fileInfo) + ')' : '') + '</div>' : '') + (Object.keys(params).length ? '<div class="print-param">m=' + escapeHtml(params.m) + ', n=' + escapeHtml(params.n) + ', k=' + escapeHtml(params.k) + ', j=' + escapeHtml(params.j) + ', s=' + escapeHtml(params.s) + (currentDbResult.atLeast != null ? ', at least=' + escapeHtml(currentDbResult.atLeast) : '') + '</div>' : '') + (conditionDesc ? '<div class="print-param">' + escapeHtml(conditionDesc) + '</div>' : '') + (samples.length ? '<div class="print-samples">' + samples.map(function(v, i) { return (i+1) + 'st # ' + escapeHtml(v); }).join('<br>') + '</div>' : '') + '<div class="print-results">Groups: ' + escapeHtml(count) + '<br><br>' + groups.map(function(g, i) { return (i+1) + '. [' + g.map(escapeHtml).join(', ') + ']'; }).join('<br>') + '</div><div class="print-filename">Generated: ' + escapeHtml(new Date().toLocaleString()) + '</div>';
       document.body.appendChild(printContent);
       window.print();
       setTimeout(function() { document.body.removeChild(printContent); }, 100);

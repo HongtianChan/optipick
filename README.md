@@ -4,6 +4,8 @@
 
 **[Live demo](https://optipick-system.vercel.app)** · [Local (offline) mode](./docs/local-mode.md) · [Deploy to Vercel](./docs/vercel-deployment-guide.md) · [Docs index](./docs/README.md)
 
+Algorithm deep dive: [Algorithm implementation detail](./docs/algorithm-implementation-detail.md)
+
 ---
 
 ## Overview
@@ -17,6 +19,9 @@ Subsampling should stay **fair and rule-driven**. This repository ships a **web 
 - Hosted UI on **Vercel** — open the browser, no `git clone`.
 - **Local** UI + API — `npm run local:web`; solving runs on your machine (`cli/src/algorithm.js`), good for flaky or offline use after install.
 - **CLI** — `node cli/index.js solve …` with JSON output and optional `--save` to a **local file DB** (`~/.optimal-samples-selector/db/`).
+- **Verify Candidate** — checks whether returned or pasted groups really cover all required `j`-combinations.
+- **Solve modes** — `fast`, `balanced`, and `quality` trade off runtime and result quality for large cases.
+- **Regression tests** — `npm test` covers exact solving, verification failures, forged precomputed saves, and local DB filename validation.
 - Optional **Supabase** on the hosted deployment for cloud history (env-gated); without it, Execute still works; cloud DB routes need configuration.
 
 ---
@@ -29,8 +34,10 @@ optimal-samples-selector/
 ├── cli/           # Local static server + Commander CLI + local algorithm
 ├── web-ui/        # Static frontend
 ├── docs/          # Deploy, local mode, course notes
+├── test/          # Node.js regression tests
+├── submission/    # Local-only course hand-in package (ignored by git)
 ├── scripts/
-├── package.json   # npm run local:web | local:solve
+├── package.json   # npm run local:web | local:solve | test
 └── vercel.json
 ```
 
@@ -79,9 +86,20 @@ cd cli
 node index.js solve -m 45 -n 8 -k 6 -j 6 -s 5
 node index.js solve ... --samples "1,2,3,4,5,6,7,8"
 node index.js solve ... --at-least 4
+node index.js solve ... --solve-mode fast
 node index.js solve ... --save
 node index.js list | show -f <name> | delete -f <name>
 ```
+
+### Verify
+
+The UI includes a **Verify Candidate** action. It sends selected samples and candidate groups to **`POST /api/verify`**, then reports:
+
+- whether all required `j`-combinations are covered
+- covered/total count and percentage
+- first failed combinations when verification fails
+
+Saved precomputed results are also verified before persistence, so invalid pasted/forged groups cannot be stored as trusted history records.
 
 ---
 
@@ -89,11 +107,11 @@ node index.js list | show -f <name> | delete -f <name>
 
 | Surface | Internet for solving? | Calls |
 |---------|------------------------|--------|
-| Hosted UI | Yes (page + each solve) | **Vercel**; optional **Supabase** if configured |
-| Local web | No (after install) | Localhost only for `/api/solve` + file DB |
+| Hosted UI | Yes (page + each solve/verify) | **Vercel**; optional **Supabase** if configured |
+| Local web | No (after install) | Localhost only for `/api/solve`, `/api/verify`, and file DB |
 | CLI | No | Local only |
 
-Core logic lives in **`api/algorithm.js`** (Vercel) and **`cli/src/algorithm.js`** (local); aside from **Vercel** hosting, optional **Supabase** persistence, and **Google Fonts**, there are no other backends for the solve path.
+Core logic lives in **`api/algorithm.js`** (Vercel) and **`cli/src/algorithm.js`** (local, re-exporting the API algorithm). Verification logic lives in **`api/verify-core.js`** and is reused by the API, local web server, and tests. Aside from **Vercel** hosting, optional **Supabase** persistence, and **Google Fonts**, there are no other backends for the solve path.
 
 ---
 
@@ -146,3 +164,19 @@ GRASP does **not** certify a global optimum; use the exact branch when `C(n,k) �
 
 - **Local:** `~/.optimal-samples-selector/db/`, filenames `m-n-k-j-s-x-y`; JSON includes `atLeast`, `solveMode`, `method`, samples, groups, timestamp.
 - **Cloud:** Supabase when env vars are set on Vercel; otherwise cloud save is off.
+
+---
+
+## Tests
+
+```bash
+npm test
+```
+
+The current regression suite checks:
+
+- exact small-case result quality
+- candidate verification pass/fail behavior
+- rejection of malformed/injection-like group values
+- rejection of forged precomputed saves before persistence
+- local DB filename validation

@@ -78,7 +78,7 @@ function avg(nums) {
 }
 
 function parseArgs(argv) {
-  const args = { runs: 5, atLeast: 1, output: null };
+  const args = { runs: 5, atLeast: 1, output: null, solveMode: 'balanced' };
   for (let i = 2; i < argv.length; i++) {
     const t = argv[i];
     if (t === '--m') args.m = toInt(argv[++i], 'm');
@@ -87,6 +87,7 @@ function parseArgs(argv) {
     else if (t === '--j') args.j = toInt(argv[++i], 'j');
     else if (t === '--s') args.s = toInt(argv[++i], 's');
     else if (t === '--at-least') args.atLeast = toInt(argv[++i], 'at-least');
+    else if (t === '--solve-mode') args.solveMode = argv[++i];
     else if (t === '--runs') args.runs = toInt(argv[++i], 'runs');
     else if (t === '--output') args.output = argv[++i];
     else if (t === '--samples') {
@@ -100,7 +101,7 @@ function parseArgs(argv) {
 
 function help() {
   return `Usage:
-  node scripts/generate-evidence-report.js --m 45 --n 8 --k 6 --j 6 --s 5 [--at-least 1] [--runs 5] [--samples "1,2,3,4,5,6,7,8"] [--output submission/sample-runs/evidence.md]
+  node scripts/generate-evidence-report.js --m 45 --n 8 --k 6 --j 6 --s 5 [--at-least 1] [--solve-mode fast|balanced|quality] [--runs 5] [--samples "1,2,3,4,5,6,7,8"] [--output submission/sample-runs/evidence.md]
 `;
 }
 
@@ -117,6 +118,9 @@ function main() {
     }
   }
   if (args.runs < 1) throw new Error('--runs must be >= 1');
+  if (!['fast', 'balanced', 'quality'].includes(args.solveMode)) {
+    throw new Error('--solve-mode must be one of: fast, balanced, quality');
+  }
 
   const runRows = [];
   for (let i = 1; i <= args.runs; i++) {
@@ -128,7 +132,8 @@ function main() {
       args.j,
       args.s,
       args.atLeast,
-      args.samples || null
+      args.samples || null,
+      args.solveMode
     );
     const durationMs = Date.now() - t0;
     const check = evaluateCoverage(result, args.j, args.s, args.atLeast);
@@ -166,6 +171,7 @@ function main() {
   lines.push('## Input');
   lines.push('');
   lines.push(`- Parameters: \`m=${args.m}, n=${args.n}, k=${args.k}, j=${args.j}, s=${args.s}, at least=${args.atLeast}\``);
+  lines.push(`- Solve mode: \`${args.solveMode}\``);
   lines.push(`- Runs: \`${args.runs}\``);
   lines.push(`- Manual samples: ${args.samples ? `\`[${args.samples.join(', ')}]\`` : '`No (random each run)`'}`);
   lines.push('');
@@ -204,6 +210,10 @@ function main() {
   lines.push(`- Runtime ms (best / avg / worst): \`${Math.min(...times)} / ${avg(times).toFixed(2)} / ${Math.max(...times)}\``);
   if (best.result.method === 'backtrack') {
     lines.push('- Method note: `backtrack` indicates exact optimization for this search size.');
+  } else if (best.result.method === 'grasp-fast') {
+    lines.push('- Method note: `grasp-fast` indicates speed-priority heuristic under time budget.');
+  } else if (best.result.method === 'grasp-quality') {
+    lines.push('- Method note: `grasp-quality` indicates longer heuristic search under time budget.');
   } else {
     lines.push('- Method note: `grasp` indicates near-optimal heuristic under time budget.');
   }

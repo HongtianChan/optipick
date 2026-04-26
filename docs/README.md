@@ -22,4 +22,5 @@
 
 - [Group project notes (English)](./project-spec/group-project-notes.md) - Requirements, parameter definitions, and worked examples.
 - [Algorithm and API brief](./algorithm-and-api-brief.md) - `algorithm.js` functions, API endpoints, and runtime flow.
+- [Algorithm implementation detail](./algorithm-implementation-detail.md) - Function-by-function explanation of the solver and verifier.
 - [Algorithm optimizations](./algorithm-optimizations.md) - Layered solving and heuristic acceleration notes.

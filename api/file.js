@@ -3,19 +3,28 @@ const { createClient } = require('@supabase/supabase-js');
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+const DB_FILE_RE = /^\d+-\d+-\d+-\d+-\d+-\d+-\d+$/;
+
+function validateFileName(fileName) {
+  if (typeof fileName !== 'string' || !DB_FILE_RE.test(fileName)) {
+    throw new Error('Invalid file name');
+  }
+  return fileName;
+}
 
 async function readDbFile(fileName) {
   if (!supabase) {
     throw new Error('Supabase not configured');
   }
+  const safeFileName = validateFileName(fileName);
   
   const { data, error } = await supabase
     .from('results')
     .select('*')
-    .eq('file_name', fileName)
+    .eq('file_name', safeFileName)
     .single();
   
-  if (error) throw new Error(`File not found: ${fileName}`);
+  if (error) throw new Error(`File not found: ${safeFileName}`);
   
   return {
     m: data.m,
@@ -33,11 +42,12 @@ async function deleteDbFile(fileName) {
   if (!supabase) {
     throw new Error('Supabase not configured');
   }
+  const safeFileName = validateFileName(fileName);
   
   const { error } = await supabase
     .from('results')
     .delete()
-    .eq('file_name', fileName);
+    .eq('file_name', safeFileName);
   
   if (error) throw error;
   return true;

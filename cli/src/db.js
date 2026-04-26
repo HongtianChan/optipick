@@ -2,27 +2,35 @@ const fs = require('fs');
 const path = require('path');
 
 const DB_DIR = path.join(process.env.HOME || process.env.USERPROFILE, '.optimal-samples-selector', 'db');
+const DB_FILE_RE = /^\d+-\d+-\d+-\d+-\d+-\d+-\d+$/;
 
-// 确保目录存在
+// Ensure the DB directory exists.
 function ensureDbDir() {
   if (!fs.existsSync(DB_DIR)) {
     fs.mkdirSync(DB_DIR, { recursive: true });
   }
 }
 
-// 生成文件名：m-n-k-j-s-x-y
+// Generate file name: m-n-k-j-s-x-y.
 function generateFileName(m, n, k, j, s, runCount, resultCount) {
   return `${m}-${n}-${k}-${j}-${s}-${runCount}-${resultCount}`;
 }
 
-// 保存结果到文件（JSON 内含 atLeast / solveMode / method 便于复现与对照作业例）
+function validateDbFileName(fileName) {
+  if (typeof fileName !== 'string' || !DB_FILE_RE.test(fileName)) {
+    throw new Error('Invalid DB file name');
+  }
+  return fileName;
+}
+
+// Save result to file. JSON includes atLeast / solveMode / method for reproducibility.
 function saveResult(m, n, k, j, s, samples, groups, meta = {}) {
   ensureDbDir();
   const atLeast = meta.atLeast != null ? meta.atLeast : 1;
   const solveMode = meta.solveMode || 'balanced';
   const method = meta.method != null ? meta.method : null;
 
-  // 查找已有的运行次数
+  // Find existing run count.
   const pattern = `${m}-${n}-${k}-${j}-${s}-`;
   const files = fs.readdirSync(DB_DIR).filter(f => f.startsWith(pattern));
   
@@ -53,7 +61,7 @@ function saveResult(m, n, k, j, s, samples, groups, meta = {}) {
   return fileName;
 }
 
-// 读取所有 DB 文件列表
+// Read all DB file names.
 function listDbFiles() {
   ensureDbDir();
   const files = fs.readdirSync(DB_DIR)
@@ -62,20 +70,22 @@ function listDbFiles() {
   return files;
 }
 
-// 读取 DB 文件内容
+// Read DB file content.
 function readDbFile(fileName) {
-  const filePath = path.join(DB_DIR, fileName);
+  const safeFileName = validateDbFileName(fileName);
+  const filePath = path.join(DB_DIR, safeFileName);
   if (!fs.existsSync(filePath)) {
-    throw new Error(`File not found: ${fileName}`);
+    throw new Error(`File not found: ${safeFileName}`);
   }
   
   const content = fs.readFileSync(filePath, 'utf-8');
   return JSON.parse(content);
 }
 
-// 删除 DB 文件
+// Delete DB file.
 function deleteDbFile(fileName) {
-  const filePath = path.join(DB_DIR, fileName);
+  const safeFileName = validateDbFileName(fileName);
+  const filePath = path.join(DB_DIR, safeFileName);
   if (fs.existsSync(filePath)) {
     fs.unlinkSync(filePath);
     return true;
@@ -83,7 +93,7 @@ function deleteDbFile(fileName) {
   return false;
 }
 
-// 格式化输出结果（用于显示）
+// Format result groups for display.
 function formatGroups(groups) {
   return groups.map((group, idx) => {
     return `${idx + 1}. [${group.join(', ')}]`;
@@ -95,6 +105,7 @@ module.exports = {
   listDbFiles,
   readDbFile,
   deleteDbFile,
+  validateDbFileName,
   formatGroups,
   DB_DIR
 };

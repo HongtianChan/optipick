@@ -22,7 +22,7 @@ We use:
 Example command:
 
 ```bash
-node scripts/generate-evidence-report.js --m 50 --n 20 --k 6 --j 6 --s 5 --at-least 1 --runs 1 --output submission/sample-runs/evidence-n20-fast.md
+node scripts/generate-evidence-report.js --m 50 --n 20 --k 6 --j 6 --s 5 --at-least 1 --solve-mode balanced --runs 1 --output submission/sample-runs/evidence-current-n20-balanced.md
 ```
 
 The report includes:
@@ -39,6 +39,9 @@ The report includes:
 - `submission/sample-runs/evidence-2026-04-14T06-15-31-460Z.md`
 - `submission/sample-runs/evidence-n20-fast.md`
 - `submission/sample-runs/evidence-n25-fast.md`
+- `submission/sample-runs/evidence-current-small-exact.md`
+- `submission/sample-runs/evidence-current-n20-balanced.md`
+- `submission/sample-runs/evidence-current-n25-fast.md`
 
 ## 4) How to present this in demo/report
 

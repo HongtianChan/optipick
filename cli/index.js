@@ -9,67 +9,73 @@ const program = new Command();
 
 program
   .name('oss')
-  .description('Optimal Samples Selector - 最优样本选择系统')
+  .description('Optimal Samples Selector')
   .version('1.0.0');
 
-// 执行计算
+// Run solver
 program
   .command('solve')
-  .description('计算最优样本组')
-  .requiredOption('-m <number>', '总样本数 (45-54)', toInt)
-  .requiredOption('-n <number>', '从 m 中选的样本数 (7-25)', toInt)
-  .requiredOption('-k <number>', '组大小 (4-7)', toInt)
-  .requiredOption('-j <number>', 'j 参数 (s <= j <= k)', toInt)
-  .requiredOption('-s <number>', 's 参数 (3-7)', toInt)
-  .option('--at-least <number>', '至少覆盖的 s 组合数 (默认 1)', toInt, 1)
-  .option('--samples <numbers>', '手动输入 n 个样本，用逗号分隔', (val) => {
+  .description('Calculate optimal sample groups')
+  .requiredOption('-m <number>', 'Total sample count (45-54)', toInt)
+  .requiredOption('-n <number>', 'Selected sample count from m (7-25)', toInt)
+  .requiredOption('-k <number>', 'Group size (4-7)', toInt)
+  .requiredOption('-j <number>', 'j parameter (s <= j <= k)', toInt)
+  .requiredOption('-s <number>', 's parameter (3-7)', toInt)
+  .option('--at-least <number>', 'Minimum covered s-combinations (default 1)', toInt, 1)
+  .option('--solve-mode <mode>', 'Solve mode: fast, balanced, quality', 'balanced')
+  .option('--samples <numbers>', 'Manual selected samples, comma-separated', (val) => {
     return val.split(',').map(x => parseInt(x.trim())).filter(x => !isNaN(x));
   })
-  .option('--save', '保存结果到 DB 文件')
+  .option('--save', 'Save result to DB file')
   .action((options) => {
     const { m, n, k, j, s, atLeast, samples, save } = options;
+    const solveMode = options.solveMode || 'balanced';
     
-    // 参数验证
+    // Parameter validation
     if (m < 45 || m > 54) {
-      console.error('错误: m 必须在 45-54 之间');
+      console.error('Error: m must be between 45 and 54');
       process.exit(1);
     }
     if (n < 7 || n > 25) {
-      console.error('错误: n 必须在 7-25 之间');
+      console.error('Error: n must be between 7 and 25');
       process.exit(1);
     }
     if (k < 4 || k > 7) {
-      console.error('错误: k 必须在 4-7 之间');
+      console.error('Error: k must be between 4 and 7');
       process.exit(1);
     }
     if (s < 3 || s > 7) {
-      console.error('错误: s 必须在 3-7 之间');
+      console.error('Error: s must be between 3 and 7');
       process.exit(1);
     }
     if (j < s || j > k) {
-      console.error(`错误: j 必须在 ${s} 到 ${k} 之间`);
+      console.error(`Error: j must be between ${s} and ${k}`);
       process.exit(1);
     }
     if (samples && samples.length !== n) {
-      console.error(`错误: 需要输入 ${n} 个样本，但提供了 ${samples.length} 个`);
+      console.error(`Error: expected ${n} samples, but received ${samples.length}`);
+      process.exit(1);
+    }
+    if (!['fast', 'balanced', 'quality'].includes(solveMode)) {
+      console.error('Error: solve-mode must be fast, balanced, or quality');
       process.exit(1);
     }
     
-    console.log('计算中...');
+    console.log('Solving...');
     const startTime = Date.now();
     
-    const result = solveOptimalSamples(m, n, k, j, s, atLeast, samples);
+    const result = solveOptimalSamples(m, n, k, j, s, atLeast, samples, solveMode);
     
     const endTime = Date.now();
     const duration = ((endTime - startTime) / 1000).toFixed(2);
     
-    console.log('\n=== 结果 ===');
-    console.log(`选中的 ${n} 个样本: [${result.samples.join(', ')}]`);
-    console.log(`算法: ${result.method === 'backtrack' ? '回溯（精确）' : '贪心（近似）'}`);
-    console.log(`最少组数: ${result.count}`);
-    console.log(`计算时间: ${duration} 秒\n`);
+    console.log('\n=== Result ===');
+    console.log(`Selected ${n} samples: [${result.samples.join(', ')}]`);
+    console.log(`Method: ${result.method === 'backtrack' ? 'Backtracking (exact)' : 'Greedy/GRASP (heuristic)'}`);
+    console.log(`Minimum group count: ${result.count}`);
+    console.log(`Runtime: ${duration} seconds\n`);
     
-    console.log('组详情:');
+    console.log('Groups:');
     result.groups.forEach((group, idx) => {
       console.log(`  ${idx + 1}. [${group.join(', ')}]`);
     });
@@ -77,77 +83,76 @@ program
     if (save) {
       const fileName = saveResult(m, n, k, j, s, result.samples, result.groups, {
         atLeast,
-        solveMode: 'balanced',
+        solveMode,
         method: result.method
       });
-      console.log(`\n已保存到: ${fileName}`);
+      console.log(`\nSaved as: ${fileName}`);
     }
   });
 
-// 列出所有 DB 文件
+// List all DB files
 program
   .command('list')
-  .description('列出所有保存的 DB 文件')
+  .description('List all saved DB files')
   .action(() => {
     const files = listDbFiles();
     if (files.length === 0) {
-      console.log('没有找到 DB 文件');
+      console.log('No DB files found');
       return;
     }
     
-    console.log(`找到 ${files.length} 个文件:\n`);
+    console.log(`Found ${files.length} file(s):\n`);
     files.forEach((file, idx) => {
       console.log(`  ${idx + 1}. ${file}`);
     });
   });
 
-// 显示 DB 文件内容
+// Show DB file content
 program
   .command('show')
-  .description('显示 DB 文件内容')
-  .requiredOption('-f <filename>', '文件名')
+  .description('Show DB file content')
+  .requiredOption('-f <filename>', 'File name')
   .action((options) => {
     try {
       const data = readDbFile(options.f);
-      console.log(`\n文件: ${options.f}`);
-      console.log(`参数: m=${data.m}, n=${data.n}, k=${data.k}, j=${data.j}, s=${data.s}`);
-      console.log(`样本: [${data.samples.join(', ')}]`);
-      console.log(`组数: ${data.count}\n`);
+      console.log(`\nFile: ${options.f}`);
+      console.log(`Parameters: m=${data.m}, n=${data.n}, k=${data.k}, j=${data.j}, s=${data.s}`);
+      console.log(`Samples: [${data.samples.join(', ')}]`);
+      console.log(`Group count: ${data.count}\n`);
       
-      console.log('组详情:');
+      console.log('Groups:');
       data.groups.forEach((group, idx) => {
         console.log(`  ${idx + 1}. [${group.join(', ')}]`);
       });
     } catch (error) {
-      console.error(`错误: ${error.message}`);
+      console.error(`Error: ${error.message}`);
       process.exit(1);
     }
   });
 
-// 删除 DB 文件
+// Delete DB file
 program
   .command('delete')
-  .description('删除 DB 文件')
-  .requiredOption('-f <filename>', '文件名')
+  .description('Delete DB file')
+  .requiredOption('-f <filename>', 'File name')
   .action((options) => {
     if (deleteDbFile(options.f)) {
-      console.log(`已删除: ${options.f}`);
+      console.log(`Deleted: ${options.f}`);
     } else {
-      console.error(`错误: 文件不存在 ${options.f}`);
+      console.error(`Error: file not found ${options.f}`);
       process.exit(1);
     }
   });
 
-// 启动 Web UI
+// Start Web UI
 program
   .command('web')
-  .description('启动 Web UI 服务器')
-  .option('-p <port>', '端口号', toInt, 3000)
+  .description('Start Web UI server')
+  .option('-p <port>', 'Port number', toInt, 3000)
   .action((options) => {
-    console.log(`启动 Web UI 服务器在端口 ${options.p}...`);
-    console.log(`访问 http://localhost:${options.p}`);
+    console.log(`Starting Web UI server on port ${options.p}...`);
+    console.log(`Open http://localhost:${options.p}`);
     
-    // 启动服务器（稍后实现）
     require('./src/server').start(options.p);
   });
 

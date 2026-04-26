@@ -1,0 +1,92 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { solveOptimalSamples } = require('../api/algorithm');
+const { evaluateCoverage, normalizeGroups, verifyCoverageOrThrow } = require('../api/verify-core');
+const solveHandler = require('../api/solve');
+const { readDbFile, deleteDbFile } = require('../cli/src/db');
+
+function mockResponse() {
+  return {
+    statusCode: 200,
+    payload: null,
+    headers: {},
+    setHeader(key, value) {
+      this.headers[key] = value;
+    },
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(body) {
+      this.payload = body;
+      return this;
+    },
+    end() {
+      return this;
+    }
+  };
+}
+
+test('exact solver returns valid minimum for classic small case', () => {
+  const samples = [1, 2, 3, 4, 5, 6, 7, 8];
+  const result = solveOptimalSamples(45, 8, 6, 6, 5, 1, samples, 'balanced');
+  const check = evaluateCoverage(result.samples, result.groups, 6, 5, 1);
+
+  assert.equal(result.method, 'backtrack');
+  assert.equal(result.count, 4);
+  assert.equal(check.passed, true);
+  assert.equal(check.satisfied, check.total);
+});
+
+test('verify rejects incomplete candidate groups', () => {
+  assert.throws(
+    () => verifyCoverageOrThrow([1, 2, 3, 4, 5, 6, 7], [[1, 2, 3, 4, 5, 6]], 6, 5, 5, 1),
+    /do not satisfy coverage/
+  );
+});
+
+test('verify rejects non-numeric group injection payloads', () => {
+  assert.throws(
+    () => normalizeGroups([[1, 2, 3, 4, 5, '<img src=x onerror=alert(1)>']]),
+    /group values must be positive integers/
+  );
+});
+
+test('solve API rejects forged precomputed saves before persistence', async () => {
+  const originalError = console.error;
+  console.error = () => {};
+  const req = {
+    method: 'POST',
+    body: {
+      m: 45,
+      n: 7,
+      k: 6,
+      j: 5,
+      s: 5,
+      atLeast: 1,
+      samples: [1, 2, 3, 4, 5, 6, 7],
+      save: true,
+      precomputed: {
+        samples: [1, 2, 3, 4, 5, 6, 7],
+        groups: [[1, 2, 3, 4, 5, 6]],
+        count: 1,
+        method: 'unknown'
+      }
+    }
+  };
+  const res = mockResponse();
+
+  try {
+    await solveHandler(req, res);
+  } finally {
+    console.error = originalError;
+  }
+
+  assert.equal(res.statusCode, 400);
+  assert.match(res.payload.error, /do not satisfy coverage/);
+});
+
+test('local DB rejects path traversal filenames', () => {
+  assert.throws(() => readDbFile('../secret'), /Invalid DB file name/);
+  assert.throws(() => deleteDbFile('45-8-6-6-5-1-4.json'), /Invalid DB file name/);
+});
