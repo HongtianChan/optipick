@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OptiPick Presentation Data Table</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 24px; color: #111; }
+    h1 { margin: 0 0 8px; }
+    p { margin: 0 0 16px; }
+    table { border-collapse: collapse; width: 100%; max-width: 980px; }
+    th, td { border: 1px solid #111; padding: 10px 12px; text-align: left; }
+    th { background: #f3f3f3; }
+    .note { margin-top: 14px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h1>Representative Results (for PPT)</h1>
+  <p>Copy this table into slides directly, or edit the data rows in this HTML file.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Scale</th>
+        <th>Params (m,n,k,j,s)</th>
+        <th>Method</th>
+        <th>Groups</th>
+        <th>Runtime (ms)</th>
+        <th>Coverage</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Small</td>
+        <td>45,8,6,6,5</td>
+        <td>backtrack</td>
+        <td>4</td>
+        <td>4002</td>
+        <td>100%</td>
+      </tr>
+      <tr>
+        <td>Medium</td>
+        <td>50,20,6,6,5</td>
+        <td>grasp</td>
+        <td>1099</td>
+        <td>5046</td>
+        <td>100%</td>
+      </tr>
+      <tr>
+        <td>Large</td>
+        <td>50,25,6,6,5</td>
+        <td>grasp-fast</td>
+        <td>5632</td>
+        <td>259</td>
+        <td>100%</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="note">
+    Suggested callout: large-case runtime improves from 5046ms to 259ms (about 19.5x faster) while maintaining full feasibility.
+  </div>
+</body>
+</html>

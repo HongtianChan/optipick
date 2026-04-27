@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="1200" height="720" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+  <text x="50" y="60" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#000000">
+    Method Selection Flow (Exact vs Heuristic)
+  </text>
+  <text x="50" y="95" font-family="Arial, sans-serif" font-size="18" fill="#000000">
+    Use this as the main "why we switch algorithms" slide visual.
+  </text>
+
+  <rect x="380" y="130" width="440" height="90" rx="10" fill="#ffffff" stroke="#000000" stroke-width="2"/>
+  <text x="410" y="170" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#000000">
+    Input: m, n, k, j, s, at_least
+  </text>
+  <text x="410" y="200" font-family="Arial, sans-serif" font-size="18" fill="#000000">
+    Example: m=50, n=25, k=6, j=6, s=5
+  </text>
+
+  <line x1="600" y1="220" x2="600" y2="270" stroke="#000000" stroke-width="3"/>
+  <polygon points="600,285 590,265 610,265" fill="#000000"/>
+
+  <rect x="360" y="290" width="480" height="100" rx="10" fill="#ffffff" stroke="#000000" stroke-width="2"/>
+  <text x="390" y="335" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#000000">
+    Compute C(n,k) = n! / (k!(n-k)!)
+  </text>
+  <text x="390" y="365" font-family="Arial, sans-serif" font-size="18" fill="#000000">
+    Current threshold in code: EXACT_THRESHOLD = 30
+  </text>
+
+  <line x1="600" y1="390" x2="600" y2="430" stroke="#000000" stroke-width="3"/>
+  <line x1="600" y1="430" x2="310" y2="430" stroke="#000000" stroke-width="3"/>
+  <line x1="600" y1="430" x2="890" y2="430" stroke="#000000" stroke-width="3"/>
+  <polygon points="310,430 330,420 330,440" fill="#000000"/>
+  <polygon points="890,430 870,420 870,440" fill="#000000"/>
+
+  <rect x="80" y="460" width="460" height="200" rx="10" fill="#ffffff" stroke="#000000" stroke-width="2"/>
+  <text x="110" y="500" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#000000">
+    If C(n,k) &lt;= 30
+  </text>
+  <text x="110" y="540" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#000000">
+    Exact Method
+  </text>
+  <text x="110" y="575" font-family="Arial, sans-serif" font-size="19" fill="#000000">
+    Backtracking + pruning
+  </text>
+  <text x="110" y="605" font-family="Arial, sans-serif" font-size="19" fill="#000000">
+    Guarantee: global optimal under model constraints
+  </text>
+  <text x="110" y="635" font-family="Arial, sans-serif" font-size="19" fill="#000000">
+    Cost: grows combinatorially with C(n,k)
+  </text>
+
+  <rect x="660" y="460" width="460" height="200" rx="10" fill="#ffffff" stroke="#000000" stroke-width="2"/>
+  <text x="690" y="500" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#000000">
+    If C(n,k) &gt; 30
+  </text>
+  <text x="690" y="540" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#000000">
+    Heuristic Method
+  </text>
+  <text x="690" y="575" font-family="Arial, sans-serif" font-size="19" fill="#000000">
+    GRASP (time-bounded search)
+  </text>
+  <text x="690" y="605" font-family="Arial, sans-serif" font-size="19" fill="#000000">
+    Guarantee: feasible solution, then strict verification
+  </text>
+  <text x="690" y="635" font-family="Arial, sans-serif" font-size="19" fill="#000000">
+    Benefit: practical runtime for large search spaces
+  </text>
+</svg>

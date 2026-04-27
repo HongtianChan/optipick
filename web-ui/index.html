@@ -1033,7 +1033,7 @@
       var c = combinationDisplay(n, k);
       if (!c || isNaN(c)) return { mode: 'indeterminate', expectedMs: 0 };
       // Keep this aligned with backend threshold in api/algorithm.js
-      if (c > 300) return { mode: 'budgeted', expectedMs: 3500 };
+      if (c > 30) return { mode: 'budgeted', expectedMs: 3500 };
       return { mode: 'indeterminate', expectedMs: 0 };
     }
 
@@ -1111,7 +1111,7 @@
       const c = combinationDisplay(n, k);
       el.textContent = c;
       if (descEl) {
-        if (c <= 300) {
+        if (c <= 30) {
           descEl.textContent = 'Small space. Will use Exact Backtracking (Guaranteed optimal).';
         } else {
           descEl.textContent = 'Large space. Will use GRASP near-optimal search (time-bounded).';
