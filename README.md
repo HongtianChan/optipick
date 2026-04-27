@@ -1,169 +1,120 @@
 # Optipick
 
-**Optimal sample subset picker** for a fixed course formulation: draw **n** distinct IDs from **1…m**, then minimize how many **k**-groups you need so every **j**-subset of those samples meets coverage rules (**s**, **at least**) — modeled as set cover.
+Optipick is an **Optimal Samples Selection System** for a constrained grouping task. It selects `n` samples from `1..m`, builds candidate `k`-groups, and minimizes the number of groups while satisfying coverage rules defined by `j`, `s`, and `atLeast`.
 
-**[Live demo](https://optipick-system.vercel.app)** · [Local (offline) mode](./docs/local-mode.md) · [Deploy to Vercel](./docs/vercel-deployment-guide.md) · [Docs index](./docs/README.md)
+Live demo: https://optipick-system.vercel.app
 
-Algorithm deep dive: [Algorithm implementation detail](./docs/algorithm-implementation-detail.md)
+## Quick Start
 
----
-
-## Overview
-
-Subsampling should stay **fair and rule-driven**. This repository ships a **web UI** (hosted or local), a tiny **HTTP API** for the same UI when run locally, and a **CLI** for scripts. The solver is **plain Node** in this repo (no separate “algorithm SaaS”).
-
----
-
-## Features
-
-- Hosted UI on **Vercel** — open the browser, no `git clone`.
-- **Local** UI + API — `npm run local:web`; solving runs on your machine (`cli/src/algorithm.js`), good for flaky or offline use after install.
-- **CLI** — `node cli/index.js solve …` with JSON output and optional `--save` to a **local file DB** (`~/.optimal-samples-selector/db/`).
-- **Verify Candidate** — checks whether returned or pasted groups really cover all required `j`-combinations.
-- **Solve modes** — `fast`, `balanced`, and `quality` trade off runtime and result quality for large cases.
-- **Regression tests** — `npm test` covers exact solving, verification failures, forged precomputed saves, and local DB filename validation.
-- Optional **Supabase** on the hosted deployment for cloud history (env-gated); without it, Execute still works; cloud DB routes need configuration.
-
----
-
-## Repository layout
-
-```
-optimal-samples-selector/
-├── api/            # Vercel serverless APIs and shared solver/verification logic
-├── cli/            # Local static server, Commander CLI, and local wrappers
-├── database/       # Optional Supabase setup SQL
-├── docs/           # Public project, algorithm, deployment, and usage docs
-├── scripts/        # Utility scripts for evidence/report generation
-├── test/           # Node.js regression tests
-├── web-ui/         # Static frontend
-├── package.json    # npm run local:web | local:solve | test
-└── vercel.json     # Vercel routing/build configuration
-```
-
----
-
-## Installation
-
-From the repository root (needed for **local web** and **CLI**):
+Install dependencies once:
 
 ```bash
 npm install
 cd cli && npm install && cd ..
 ```
 
----
-
-## Usage
-
-Pick **one** column that matches how you want to work.
-
-| | Hosted | Local web | CLI |
-|---|--------|-----------|-----|
-| **You need** | Network | `npm install` once | `npm install` once |
-| **Solver runs on** | Vercel (Node) | Your machine | Your machine |
-| **Typical entry** | Open [Live demo](https://optipick-system.vercel.app) | `npm run local:web` then `http://localhost:3000` | `cd cli && node index.js solve …` |
-
-### Hosted
-
-Use when you are online and do not want a checkout. The UI calls **`POST /api/solve`** on the same host (Vercel). **Cloud History** on that deployment only works if **Supabase** env vars are set; otherwise use copy/export from the UI or run **local web** for a file DB.
-
-### Local web
-
-Solving does **not** call Vercel or Supabase. History goes under `~/.optimal-samples-selector/db/` (see [local-mode](./docs/local-mode.md)).
+Run the local web version:
 
 ```bash
-npm run local:web                 # http://localhost:3000
-node cli/index.js web -p 3001     # alternate port
+npm run local:web
 ```
 
-The HTML loads **Google Fonts** from Google’s CDN (typography only).
+Then open:
 
-### CLI
+```bash
+http://localhost:3000
+```
+
+Run the regression tests:
+
+```bash
+npm test
+```
+
+## Project Structure
+
+```text
+optimal-samples-selector/
+├── api/            # Vercel APIs and shared solver/verification logic
+├── cli/            # Local web server and command-line interface
+├── database/       # Optional Supabase setup SQL
+├── scripts/        # Evidence and utility scripts
+├── test/           # Node.js regression tests
+├── web-ui/         # Static frontend
+├── package.json    # npm scripts
+└── vercel.json     # Vercel routing configuration
+```
+
+## Usage Modes
+
+| Mode | Entry | Notes |
+|---|---|---|
+| Hosted Web | Open the live demo | Best for quick demonstration. |
+| Local Web | `npm run local:web` | Runs the same browser UI on localhost. |
+| CLI | `node cli/index.js solve ...` | Good for batch testing and saved evidence. |
+
+## CLI Examples
 
 ```bash
 cd cli
 node index.js solve -m 45 -n 8 -k 6 -j 6 -s 5
-node index.js solve ... --samples "1,2,3,4,5,6,7,8"
-node index.js solve ... --at-least 4
-node index.js solve ... --solve-mode fast
-node index.js solve ... --save
-node index.js list | show -f <name> | delete -f <name>
+node index.js solve -m 45 -n 8 -k 6 -j 6 -s 5 --samples "1,2,3,4,5,6,7,8"
+node index.js solve -m 50 -n 25 -k 6 -j 6 -s 5 --solve-mode fast
+node index.js solve -m 45 -n 8 -k 6 -j 6 -s 5 --save
+node index.js list
+node index.js show -f <file-name>
+node index.js delete -f <file-name>
 ```
-
-### Verify
-
-The UI includes a **Verify Candidate** action. It sends selected samples and candidate groups to **`POST /api/verify`**, then reports:
-
-- whether all required `j`-combinations are covered
-- covered/total count and percentage
-- first failed combinations when verification fails
-
-Saved precomputed results are also verified before persistence, so invalid pasted/forged groups cannot be stored as trusted history records.
-
----
-
-## Network & third parties
-
-| Surface | Internet for solving? | Calls |
-|---------|------------------------|--------|
-| Hosted UI | Yes (page + each solve/verify) | **Vercel**; optional **Supabase** if configured |
-| Local web | No (after install) | Localhost only for `/api/solve`, `/api/verify`, and file DB |
-| CLI | No | Local only |
-
-Core logic lives in **`api/algorithm.js`** (Vercel) and **`cli/src/algorithm.js`** (local, re-exporting the API algorithm). Verification logic lives in **`api/verify-core.js`** and is reused by the API, local web server, and tests. Aside from **Vercel** hosting, optional **Supabase** persistence, and **Google Fonts**, there are no other backends for the solve path.
-
----
 
 ## Parameters
 
-`m` ∈ [45, 54] · `n` ∈ [7, 25] · `k` ∈ [4, 7] · `s` ∈ [3, 7] · `s ≤ j ≤ k` · `n ≤ m` · `k ≤ n` · manual samples: **n** distinct integers in `[1, m]`.
+| Parameter | Meaning | Range |
+|---|---|---|
+| `m` | Total sample pool size | `45 <= m <= 54` |
+| `n` | Selected sample count | `7 <= n <= 25` |
+| `k` | Group size | `4 <= k <= 7` |
+| `j` | Requirement subset size | `s <= j <= k` |
+| `s` | Required overlap size | `3 <= s <= 7` |
+| `atLeast` | Minimum coverage count | default `1` |
 
----
+In simple words: each selected `k`-group is like a table; every `j`-sample subset must have at least `s` members appearing together in selected groups, and this must happen at least `atLeast` times.
 
 ## Algorithm
 
-### Figures
+Optipick models the task as a **minimum set cover** problem.
 
-Pipeline in one sentence: pick **n** → every **k**-subset of those samples is a candidate → each **j**-subset of the **n** samples is a constraint → choose **fewest** candidates that jointly satisfy the rules.
+1. Select `n` samples from the `m`-sample pool.
+2. Enumerate all possible `k`-groups as candidate sets.
+3. Treat every required `j`-combination as a coverage requirement.
+4. Select as few `k`-groups as possible while covering all requirements.
 
-```mermaid
-flowchart LR
-  P["Pick n samples<br/>from 1..m"] --> K["All k-subsets<br/>C(n,k) candidates"]
-  K --> J["Universe: j-subsets<br/>of the n samples"]
-  J --> S["Minimize # of<br/>chosen k-groups"]
+Solver strategy:
+
+- If `C(n,k) <= 30`, the system uses exact backtracking and can guarantee an exact minimum under the implemented rules.
+- If `C(n,k) > 30`, the system uses a time-bounded GRASP-style heuristic.
+- `fast`, `balanced`, and `quality` modes control the heuristic runtime/quality trade-off.
+- `Verify Candidate` independently checks feasibility for every returned result.
+
+## Data Storage
+
+Local saved runs are stored under:
+
+```bash
+~/.optimal-samples-selector/db/
 ```
 
-```mermaid
-flowchart TD
-  Q{"C(n,k) <= 30 ?"}
-  Q -->|Yes| E["Backtracking<br/>exact minimum"]
-  Q -->|No| H["GRASP-style greedy<br/>per solveMode budget"]
-  H --> R["May shrink cover<br/>redundant removal"]
-```
+Saved records include parameters, selected samples, groups, group count, method, solve mode, and timestamp.
 
-### Model
+The hosted deployment can use Supabase for cloud history when environment variables are configured. Solving itself still works without Supabase.
 
-After fixing **n** sample IDs from **m**, enumerate every candidate **k**-subset of those **n** samples. Each candidate **covers** a set of **j**-subset constraints according to **s** and **at least** (see `api/algorithm.js`, `coversRequirement`). Minimize the number of chosen candidates — a **set cover** instance.
+## API Surface
 
-### Exact mode
-
-If `C(n,k) ≤ 30`, the solver uses **backtracking** on coverage-deduplicated candidates, seeded with a greedy upper bound, ordered by how many uncovered **j**-constraints each candidate hits, with simple lower-bound pruning. Intended for very small combinatorial spaces only, so hosted solves do not time out.
-
-### Heuristic mode
-
-If `C(n,k) > 30`, a **time-bounded GRASP-style** greedy (`greedySetCover`) runs with per-`solveMode` wall clocks (`fast` ≈ 2.2s, `balanced` ≈ 3.5s, `quality` ≈ 5.5s in the GRASP phase). A **fast path** exists when `solveMode === fast`, `j === k`, `s === k - 1`, `atLeast === 1`, and `C(n,k) ≥ 5000` (`fastRadiusCoverHeuristic`). **Redundant-group removal** may run afterward when `C(n,k)` is below internal cost thresholds.
-
-GRASP does **not** certify a global optimum; use the exact branch when `C(n,k) ≤ 30` if you need a certified minimum under this codebase’s rules.
-
----
-
-## Data
-
-- **Local:** `~/.optimal-samples-selector/db/`, filenames `m-n-k-j-s-x-y`; JSON includes `atLeast`, `solveMode`, `method`, samples, groups, timestamp.
-- **Cloud:** Supabase when env vars are set on Vercel; otherwise cloud save is off.
-
----
+| Endpoint | Purpose |
+|---|---|
+| `POST /api/solve` | Solve a parameter set and optionally save the result. |
+| `POST /api/verify` | Verify whether candidate groups satisfy coverage constraints. |
+| `GET /api/files` | List saved local records in local web mode. |
+| `GET /api/export` | Export saved records as JSON in local web mode. |
 
 ## Tests
 
@@ -171,10 +122,4 @@ GRASP does **not** certify a global optimum; use the exact branch when `C(n,k) �
 npm test
 ```
 
-The current regression suite checks:
-
-- exact small-case result quality
-- candidate verification pass/fail behavior
-- rejection of malformed/injection-like group values
-- rejection of forged precomputed saves before persistence
-- local DB filename validation
+The test suite checks exact solving, candidate verification, forged-save rejection, malformed input rejection, local DB filename validation, and graceful behavior when cloud history is unavailable.

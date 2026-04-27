@@ -1,4 +1,0 @@
-scale,m,n,k,j,s,method,groups,runtime_ms,coverage_percent
-small,45,8,6,6,5,backtrack,4,4002,100
-medium,50,20,6,6,5,grasp,1099,5046,100
-large,50,25,6,6,5,grasp-fast,5632,259,100
