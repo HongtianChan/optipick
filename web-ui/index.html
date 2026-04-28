@@ -1316,13 +1316,13 @@
           descEl.textContent = 'Search space was small enough to use Backtracking. Guaranteed minimum. Time: ' + result.calculationTime + 's.';
         } else if (result.method === 'grasp-quality') {
           titleEl.textContent = 'Quality Mode Result (' + result.count + ' groups)';
-          descEl.textContent = 'Quality mode runs longer GRASP search to improve group count. Time: ' + result.calculationTime + 's.';
+          descEl.textContent = 'Extended GRASP search with redundancy removal. Result is near-optimal but not guaranteed minimum. Time: ' + result.calculationTime + 's.';
         } else if (result.method === 'grasp-fast') {
           titleEl.textContent = 'Fast Mode Result (' + result.count + ' groups)';
-          descEl.textContent = 'Fast mode prioritizes speed for large cases. Time: ' + result.calculationTime + 's.';
+          descEl.textContent = 'Speed-priority heuristic. Group count may be higher than optimal. Time: ' + result.calculationTime + 's.';
         } else {
           titleEl.textContent = 'Near-Optimal Solution Found (' + result.count + ' groups)';
-          descEl.textContent = 'Search space was large, so GRASP time-bounded search was used. Fast and near-optimal. Time: ' + result.calculationTime + 's.';
+          descEl.textContent = 'GRASP heuristic search. Result is near-optimal but not guaranteed minimum. Time: ' + result.calculationTime + 's.';
         }
         metaEl.classList.add('show');
         
@@ -1477,7 +1477,8 @@
         }
         var base = 'Coverage: ' + result.satisfied + '/' + result.total + ' (' + result.coveragePct.toFixed(2) + '%)';
         if (result.passed) {
-          if (summaryEl) summaryEl.textContent = 'Verification passed. ' + base + '.';
+          var note = ' (Verifies coverage completeness, not optimality of group count.)';
+          if (summaryEl) summaryEl.textContent = 'Verification passed. ' + base + '.' + note;
           showToast('Verification passed', 'success');
         } else {
           var failedHint = '';

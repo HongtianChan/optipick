@@ -364,6 +364,35 @@ function removeRedundantGroups(selected, allJCombinations, j, s, atLeast) {
   return result;
 }
 
+// Bitset-accelerated redundant removal with multi-pass shrinking.
+function removeRedundantGroupsFast(selected, allJCombinations, j, s, atLeast) {
+  if (selected.length <= 1) return selected;
+  const numJ = allJCombinations.length;
+  const bitsLen = (numJ + 31) >>> 5;
+  let result = [...selected];
+  let changed = true;
+
+  while (changed) {
+    changed = false;
+    const indexes = buildCoverageIndexes(result, allJCombinations, j, s, atLeast);
+    const bits = indexes.map(list => bitsetFromIndexList(list, numJ));
+
+    for (let i = result.length - 1; i >= 0; i--) {
+      const unionBits = new Uint32Array(bitsLen);
+      for (let g = 0; g < result.length; g++) {
+        if (g === i) continue;
+        bitsetOrInto(unionBits, bits[g]);
+      }
+      if (popcountAndNot(bits[i], unionBits) === 0) {
+        result.splice(i, 1);
+        bits.splice(i, 1);
+        changed = true;
+      }
+    }
+  }
+  return result;
+}
+
 // Fast constructive heuristic for heavy case: j = k and s = k - 1 (atLeast = 1).
 // Instead of scanning all candidate groups each step, repeatedly pick one uncovered
 // k-combination and mark its radius-1 neighborhood as covered.
@@ -481,7 +510,6 @@ function solveOptimalSamples(m, n, k, j, s, atLeast = 1, randomSamples = null, s
   const totalKGroups = combination(n, k);
   const EXACT_THRESHOLD = 30;
   const REDUNDANT_REMOVAL_THRESHOLD = 1500;
-  const QUALITY_REDUNDANT_REMOVAL_THRESHOLD = 20000;
   const useExact = totalKGroups <= EXACT_THRESHOLD;
   const mode = (solveMode || 'balanced').toLowerCase();
 
@@ -502,15 +530,13 @@ function solveOptimalSamples(m, n, k, j, s, atLeast = 1, randomSamples = null, s
         method: methodName
       };
     }
-    const graspBudgetMs = mode === 'quality' ? 5500 : (mode === 'fast' ? 2200 : 3500);
-    const scanMode = 'auto';
+    const graspBudgetMs = mode === 'quality' ? 15000 : (mode === 'fast' ? 2200 : 3500);
+    const scanMode = mode === 'quality' ? 'full' : 'auto';
     result = greedySetCover(nSamples, k, j, s, atLeast, graspBudgetMs, scanMode);
-    // Redundant-removal post pass can be very expensive on large search spaces.
-    if (
-      totalKGroups <= REDUNDANT_REMOVAL_THRESHOLD ||
-      (mode === 'quality' && totalKGroups <= QUALITY_REDUNDANT_REMOVAL_THRESHOLD)
-    ) {
-      const allJ = generateCombinations(nSamples, j);
+    const allJ = generateCombinations(nSamples, j);
+    if (mode === 'quality') {
+      result = removeRedundantGroupsFast(result, allJ, j, s, atLeast);
+    } else if (totalKGroups <= REDUNDANT_REMOVAL_THRESHOLD) {
       result = removeRedundantGroups(result, allJ, j, s, atLeast);
     }
     methodName = mode === 'quality' ? 'grasp-quality' : (mode === 'fast' ? 'grasp-fast' : 'grasp');
