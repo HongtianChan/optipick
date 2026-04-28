@@ -127,6 +127,7 @@ module.exports = async (req, res) => {
     } else {
       result = solveOptimalSamples(m, n, k, j, s, atLeast, samples, mode);
     }
+    verifyCoverageOrThrow(result.samples, result.groups, k, j, s, atLeast);
     const solveMs = Date.now() - solveStart;
     
     let fileName = null;

@@ -3,6 +3,7 @@
 const { Command } = require('commander');
 const { solveOptimalSamples } = require('./src/algorithm');
 const { saveResult, listDbFiles, readDbFile, deleteDbFile, formatGroups } = require('./src/db');
+const { verifyCoverageOrThrow } = require('./src/verify');
 const toInt = (val) => Number.parseInt(val, 10);
 
 const program = new Command();
@@ -65,6 +66,7 @@ program
     const startTime = Date.now();
     
     const result = solveOptimalSamples(m, n, k, j, s, atLeast, samples, solveMode);
+    verifyCoverageOrThrow(result.samples, result.groups, k, j, s, atLeast);
     
     const endTime = Date.now();
     const duration = ((endTime - startTime) / 1000).toFixed(2);

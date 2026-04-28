@@ -39,6 +39,31 @@ test('exact solver returns valid minimum for classic small case', () => {
   assert.equal(check.satisfied, check.total);
 });
 
+test('balanced heuristic completes at least one construction after heavy precompute', () => {
+  const samples = [1, 3, 9, 11, 14, 15, 18, 21, 22, 23, 29, 33, 34, 35, 36, 39];
+  const result = solveOptimalSamples(45, 16, 6, 6, 4, 1, samples, 'balanced');
+  const check = evaluateCoverage(result.samples, result.groups, 6, 4, 1);
+
+  assert.equal(result.method, 'grasp');
+  assert.ok(result.count > 0);
+  assert.equal(check.passed, true);
+});
+
+test('heuristic returns feasible non-empty covers across varied sample sets', () => {
+  const cases = [
+    { m: 45, n: 16, k: 6, j: 6, s: 4, samples: [1, 3, 9, 11, 14, 15, 18, 21, 22, 23, 29, 33, 34, 35, 36, 39] },
+    { m: 45, n: 16, k: 6, j: 6, s: 4, samples: Array.from({ length: 16 }, (_, i) => i + 1) },
+    { m: 50, n: 16, k: 6, j: 5, s: 4, samples: [2, 4, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 50] }
+  ];
+
+  for (const c of cases) {
+    const result = solveOptimalSamples(c.m, c.n, c.k, c.j, c.s, 1, c.samples, 'balanced');
+    const check = evaluateCoverage(result.samples, result.groups, c.j, c.s, 1);
+    assert.ok(result.count > 0, `expected non-empty cover for ${JSON.stringify(c.samples)}`);
+    assert.equal(check.passed, true);
+  }
+});
+
 test('verify rejects incomplete candidate groups', () => {
   assert.throws(
     () => verifyCoverageOrThrow([1, 2, 3, 4, 5, 6, 7], [[1, 2, 3, 4, 5, 6]], 6, 5, 5, 1),

@@ -246,11 +246,38 @@ function greedySetCover(nSamples, k, j, s, atLeast = 1, timeLimitMs = 4000, scan
   const useStochasticScan = scanMode === 'stochastic' || (scanMode === 'auto' && uniqueGroups.length > LARGE_CANDIDATE_THRESHOLD);
   const STOCHASTIC_SAMPLE_SIZE = 1400;
 
+  function fullScanGreedyFallback() {
+    const coveredBits = new Uint32Array((numJ + 31) >>> 5);
+    const selected = [];
+    const selectedIdx = new Set();
+
+    while (popcountBitset(coveredBits) < numJ) {
+      let bestIdx = -1;
+      let bestNewCov = 0;
+
+      for (let g = 0; g < uniqueGroups.length; g++) {
+        if (selectedIdx.has(g)) continue;
+        const newCov = popcountAndNot(coverageBits[g], coveredBits);
+        if (newCov > bestNewCov) {
+          bestNewCov = newCov;
+          bestIdx = g;
+        }
+      }
+
+      if (bestIdx === -1) break;
+      selected.push(uniqueGroups[bestIdx]);
+      selectedIdx.add(bestIdx);
+      bitsetOrInto(coveredBits, coverageBits[bestIdx]);
+    }
+
+    return popcountBitset(coveredBits) === numJ ? selected : [];
+  }
+
   // GRASP: Greedy Randomized Adaptive Search Procedure
   // We run multiple iterations of randomized greedy to escape local optima
   let globalBest = null;
 
-  while (Date.now() - startTime < timeLimitMs) {
+  do {
     const coveredBits = new Uint32Array((numJ + 31) >>> 5);
     const selected = [];
     const selectedIdx = new Set();
@@ -301,12 +328,15 @@ function greedySetCover(nSamples, k, j, s, atLeast = 1, timeLimitMs = 4000, scan
       bitsetOrInto(coveredBits, coverageBits[chosenIdx]);
     }
 
-    if (!globalBest || selected.length < globalBest.length) {
+    if (popcountBitset(coveredBits) === numJ && (!globalBest || selected.length < globalBest.length)) {
       globalBest = selected;
     }
-  }
+  } while (Date.now() - startTime < timeLimitMs);
 
-  return globalBest || [];
+  // Time budgets should limit optimization effort, not allow an infeasible answer.
+  // If randomized GRASP does not finish a full cover, fall back to deterministic
+  // full-scan greedy and spend the extra time needed to return a valid solution.
+  return globalBest || fullScanGreedyFallback();
 }
 
 // Post-process greedy results by removing redundant groups.
