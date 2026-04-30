@@ -6,7 +6,8 @@
     "build": "echo 'No build step required'",
     "test": "node --test test/*.test.js",
     "local:web": "node cli/index.js web -p 3000",
-    "local:solve": "node cli/index.js solve -m 45 -n 8 -k 6 -j 6 -s 5 --save"
+    "local:solve": "node cli/index.js solve -m 45 -n 8 -k 6 -j 6 -s 5 --save",
+    "precache:coverage": "node scripts/precache-coverage-indexes.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.91.1"

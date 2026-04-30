@@ -922,6 +922,7 @@
     let progressStartAt = 0;
     let progressMode = 'indeterminate'; // 'budgeted' | 'indeterminate'
     let progressExpectedMs = 0;
+    let progressSolveMode = 'balanced';
     let currentAbortController = null;
     let isCalculating = false;
     let currentDbResult = null;
@@ -1030,10 +1031,14 @@
     function estimateSolveMode() {
       var n = parseInt(document.getElementById('param-n').value, 10);
       var k = parseInt(document.getElementById('param-k').value, 10);
+      var solveMode = document.getElementById('param-solve-mode').value || 'balanced';
       var c = combinationDisplay(n, k);
       if (!c || isNaN(c)) return { mode: 'indeterminate', expectedMs: 0 };
-      // Keep this aligned with backend threshold in api/algorithm.js
-      if (c > 30) return { mode: 'budgeted', expectedMs: 3500 };
+      // Keep this aligned with backend EXACT_THRESHOLD in api/algorithm.js
+      if (c > 120) {
+        var expectedByMode = { fast: 3500, balanced: 15000, quality: 60000 };
+        return { mode: 'budgeted', expectedMs: expectedByMode[solveMode] || 15000, solveMode: solveMode };
+      }
       return { mode: 'indeterminate', expectedMs: 0 };
     }
 
@@ -1045,6 +1050,7 @@
       var plan = estimateSolveMode();
       progressMode = plan.mode;
       progressExpectedMs = plan.expectedMs;
+      progressSolveMode = plan.solveMode || 'balanced';
       progressStartAt = Date.now();
       wrap.classList.add('show');
       bar.classList.add('indeterminate');
@@ -1055,11 +1061,14 @@
         var elapsedMs = Date.now() - progressStartAt;
         var elapsedSec = (elapsedMs / 1000).toFixed(1);
         if (progressMode === 'budgeted') {
+          var qualityLike = progressSolveMode === 'balanced' || progressSolveMode === 'quality';
+          var secondStageMs = qualityLike ? 15000 : 3000;
+          var thirdStageMs = qualityLike ? 45000 : 6000;
           if (elapsedMs < 1000) {
             txt.textContent = 'Preparing candidate groups... ' + elapsedSec + 's';
-          } else if (elapsedMs < 3000) {
+          } else if (elapsedMs < secondStageMs) {
             txt.textContent = 'Searching near-optimal solution (GRASP)... ' + elapsedSec + 's';
-          } else if (elapsedMs < 6000) {
+          } else if (elapsedMs < thirdStageMs) {
             txt.textContent = 'Refining result... ' + elapsedSec + 's';
           } else {
             txt.textContent = 'Still running (' + elapsedSec + 's). You can click Stop and try smaller n.';
@@ -1111,7 +1120,7 @@
       const c = combinationDisplay(n, k);
       el.textContent = c;
       if (descEl) {
-        if (c <= 30) {
+        if (c <= 120) {
           descEl.textContent = 'Small space. Will use Exact Backtracking (Guaranteed optimal).';
         } else {
           descEl.textContent = 'Large space. Will use GRASP near-optimal search (time-bounded).';
@@ -1316,13 +1325,13 @@
           descEl.textContent = 'Search space was small enough to use Backtracking. Guaranteed minimum. Time: ' + result.calculationTime + 's.';
         } else if (result.method === 'grasp-quality') {
           titleEl.textContent = 'Quality Mode Result (' + result.count + ' groups)';
-          descEl.textContent = 'Extended GRASP search with redundancy removal. Result is near-optimal but not guaranteed minimum. Time: ' + result.calculationTime + 's.';
+          descEl.textContent = 'Longest GRASP budget with full-scan construction and redundancy removal. Still heuristic (not guaranteed minimum). Time: ' + result.calculationTime + 's.';
         } else if (result.method === 'grasp-fast') {
           titleEl.textContent = 'Fast Mode Result (' + result.count + ' groups)';
-          descEl.textContent = 'Speed-priority heuristic. Group count may be higher than optimal. Time: ' + result.calculationTime + 's.';
+          descEl.textContent = 'Heuristic search under the fast-mode budget. Result is feasible but not guaranteed minimum. Time: ' + result.calculationTime + 's.';
         } else {
           titleEl.textContent = 'Near-Optimal Solution Found (' + result.count + ' groups)';
-          descEl.textContent = 'GRASP heuristic search. Result is near-optimal but not guaranteed minimum. Time: ' + result.calculationTime + 's.';
+          descEl.textContent = 'GRASP heuristic with extended budget and full-scan construction. Result is near-optimal but not guaranteed minimum. Time: ' + result.calculationTime + 's.';
         }
         metaEl.classList.add('show');
         

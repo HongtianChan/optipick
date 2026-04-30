@@ -90,10 +90,26 @@ Optipick models the task as a **minimum set cover** problem.
 
 Solver strategy:
 
-- If `C(n,k) <= 30`, the system uses exact backtracking and can guarantee an exact minimum under the implemented rules.
-- If `C(n,k) > 30`, the system uses a time-bounded GRASP-style heuristic.
-- `fast`, `balanced`, and `quality` modes control the heuristic runtime/quality trade-off.
+- If `C(n,k) <= 120`, the system uses exact backtracking and can guarantee an exact minimum under the implemented rules.
+- If `C(n,k) > 120`, the system uses a time-bounded GRASP-style heuristic.
+- `fast`, `balanced`, and `quality` modes control the heuristic runtime/quality trade-off (internally tiered: longer budgets for higher modes).
 - `Verify Candidate` independently checks feasibility for every returned result.
+
+## Precomputed coverage index (optional)
+
+Solving is done on a canonical label set `1..n` (result `samples` are the sorted actual pool values). The heavy step is “which j-requirements does each k-group cover?”. For **`j = k` and `atLeast = 1`**, a dedicated path enumerates those requirements from intersections (not an all-pairs scan over every k-group and every j-requirement), so large teacher-style instances stay interactive.
+
+If you have disk and time, you can **measure or snapshot** the deduplicated `uniqueGroups` + `uniqueCoverage` for the teacher parameter grid:
+
+```bash
+# Writes data/coverage/manifest.json and prints timings (fast)
+npm run precache:coverage
+
+# Also writes one JSON per case; can be hundreds of MB for n=23
+OPTIPICK_COVERAGE_DIR=./data/coverage npm run precache:coverage -- --write-json
+```
+
+Runtime loading of those JSON files as a substitute for the in-core builder is not wired in by default (to avoid OOM on huge files); the script is mainly for **evidence, backups, and tuning**.
 
 ## Data Storage
 

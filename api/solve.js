@@ -43,9 +43,11 @@ function validateInputs(m, n, k, j, s, atLeast, samples) {
 
 function validateSolveMode(solveMode) {
   const mode = solveMode || 'balanced';
-  if (!['fast', 'balanced', 'quality'].includes(mode)) {
+  if (!['fast', 'balanced', 'quality', 'deep'].includes(mode)) {
     throw new Error('solveMode must be one of: fast, balanced, quality');
   }
+  // Back-compat only: `deep` is accepted but treated as `quality` in the solver.
+  if (mode === 'deep') return 'quality';
   return mode;
 }
 

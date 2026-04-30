@@ -211,9 +211,9 @@ function main() {
   if (best.result.method === 'backtrack') {
     lines.push('- Method note: `backtrack` indicates exact optimization for this search size.');
   } else if (best.result.method === 'grasp-fast') {
-    lines.push('- Method note: `grasp-fast` indicates speed-priority heuristic under time budget.');
+    lines.push('- Method note: `grasp-fast` indicates heuristic search under the fast-mode time budget.');
   } else if (best.result.method === 'grasp-quality') {
-    lines.push('- Method note: `grasp-quality` indicates longer heuristic search under time budget.');
+    lines.push('- Method note: `grasp-quality` indicates the longest heuristic budget in this build.');
   } else {
     lines.push('- Method note: `grasp` indicates near-optimal heuristic under time budget.');
   }
