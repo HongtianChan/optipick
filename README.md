@@ -109,7 +109,7 @@ npm run precache:coverage
 OPTIPICK_COVERAGE_DIR=./data/coverage npm run precache:coverage -- --write-json
 ```
 
-Runtime loading of those JSON files as a substitute for the in-core builder is not wired in by default (to avoid OOM on huge files); the script is mainly for **evidence, backups, and tuning**.
+The solver will **try to load** `n{n}-k{k}-j{j}-s{s}-a{atLeast}.json` (or `.json.gz`) from `data/coverage` when present, or from `OPTIPICK_COVERAGE_DIR` if set. Set `OPTIPICK_COVERAGE_DISABLE=1` to force the in-memory builder; use `OPTIPICK_COVERAGE_MAX_MB` (default 1200) to skip oversized files; `OPTIPICK_COVERAGE_DEBUG=1` logs cache hits on stderr.
 
 ## Data Storage
 

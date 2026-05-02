@@ -541,6 +541,28 @@
       cursor: pointer;
     }
     .btn-print:hover { color: var(--accent); border-color: var(--accent); }
+    .results-toolbar {
+      margin-top: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .results-toolbar .btn-print {
+      box-sizing: border-box;
+      min-width: 0;
+      flex: 1 1 7rem;
+      max-width: 100%;
+    }
+    @media (max-width: 520px) {
+      .results-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .results-toolbar .btn-print {
+        flex: none;
+        width: 100%;
+      }
+    }
     
     .error {
       background: #fef2f2;
@@ -584,8 +606,28 @@
     }
     .history-actions {
       display: flex;
+      flex-wrap: wrap;
       gap: 10px;
       margin-bottom: 20px;
+    }
+    .history-actions .btn-primary,
+    .history-actions .btn-danger {
+      box-sizing: border-box;
+      min-width: 0;
+      flex: 1 1 8.5rem;
+      max-width: 100%;
+    }
+    @media (max-width: 520px) {
+      .history-actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .history-actions .btn-primary,
+      .history-actions .btn-danger {
+        flex: none;
+        width: 100%;
+        max-width: none;
+      }
     }
     .btn-primary {
       padding: 10px 20px;
@@ -610,7 +652,28 @@
       cursor: pointer;
     }
     .btn-danger:hover { background: #dc2626; }
-    .nav-buttons { display: flex; gap: 10px; margin-top: 16px; }
+    .nav-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .nav-buttons > button {
+      box-sizing: border-box;
+      min-width: 0;
+      flex: 1 1 6rem;
+      max-width: 100%;
+    }
+    @media (max-width: 520px) {
+      .nav-buttons {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .nav-buttons > button {
+        flex: none;
+        width: 100%;
+      }
+    }
     .nav-buttons button {
       padding: 8px 16px;
       font-size: 0.875rem;
@@ -861,7 +924,7 @@
           <div class="results-meta-desc" id="meta-desc"></div>
         </div>
         <div id="results" class="results-box" data-placeholder="No result yet"></div>
-        <div style="margin-top: 12px; display: flex; gap: 8px;">
+        <div class="results-toolbar">
           <button type="button" class="btn-print" onclick="printResults()">Print</button>
           <button type="button" class="btn-print" onclick="copyResults()">Copy</button>
           <button type="button" class="btn-print" id="btn-verify" onclick="verifyCandidateGroups()" disabled>Verify Candidate</button>

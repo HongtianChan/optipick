@@ -1,4 +1,8 @@
 // API algorithm core. cli/src/algorithm.js re-exports this file.
+const fs = require('fs');
+const path = require('path');
+const zlib = require('zlib');
+
 // combination count: nCk.
 function combination(n, k) {
   if (k > n || k < 0) return 0;
@@ -312,6 +316,100 @@ function buildCanonicalCoverageState(n, k, j, s, atLeast) {
   };
 }
 
+function coveragePrecacheFilenameKey(n, k, j, s, atLeast) {
+  return `n${n}-k${k}-j${j}-s${s}-a${atLeast}`;
+}
+
+/**
+ * Optional disk cache produced by `scripts/precache-coverage-indexes.js` (--write-json).
+ * Set OPTIPICK_COVERAGE_DIR (default ./data/coverage relative to repo root) or disable with
+ * OPTIPICK_COVERAGE_DISABLE=1. Large files can be capped via OPTIPICK_COVERAGE_MAX_MB.
+ */
+function tryLoadPrecachedCanonicalCoverage(nCanon, k, j, s, atLeast) {
+  const disable = process.env.OPTIPICK_COVERAGE_DISABLE;
+  if (disable === '1' || disable === 'true') return null;
+
+  const dir =
+    process.env.OPTIPICK_COVERAGE_DIR ||
+    path.join(__dirname, '..', 'data', 'coverage');
+  const base = path.join(dir, coveragePrecacheFilenameKey(nCanon, k, j, s, atLeast));
+
+  const maxMb = process.env.OPTIPICK_COVERAGE_MAX_MB;
+  const maxBytes =
+    maxMb != null && maxMb !== '' && Number.isFinite(Number(maxMb)) && Number(maxMb) > 0
+      ? Math.floor(Number(maxMb) * 1024 * 1024)
+      : 1200 * 1024 * 1024;
+
+  let buf;
+  let used;
+  const plain = `${base}.json`;
+  const gz = `${base}.json.gz`;
+  if (fs.existsSync(plain)) {
+    const st = fs.statSync(plain);
+    if (st.size > maxBytes) return null;
+    buf = fs.readFileSync(plain);
+    used = plain;
+  } else if (fs.existsSync(gz)) {
+    const st = fs.statSync(gz);
+    if (st.size > maxBytes) return null;
+    buf = zlib.gunzipSync(fs.readFileSync(gz));
+    used = gz;
+  } else {
+    return null;
+  }
+
+  let payload;
+  try {
+    payload = JSON.parse(buf.toString('utf8'));
+  } catch {
+    return null;
+  }
+
+  if (
+    !payload ||
+    payload.n !== nCanon ||
+    payload.k !== k ||
+    payload.j !== j ||
+    payload.s !== s ||
+    payload.atLeast !== atLeast ||
+    !Array.isArray(payload.uniqueGroups) ||
+    !Array.isArray(payload.uniqueCoverage) ||
+    payload.uniqueGroups.length !== payload.uniqueCoverage.length
+  ) {
+    return null;
+  }
+
+  const numJExpected = combination(nCanon, j);
+  if (typeof payload.numJ === 'number' && payload.numJ !== numJExpected) return null;
+  const numJ = numJExpected;
+
+  for (let g = 0; g < payload.uniqueGroups.length; g++) {
+    const grp = payload.uniqueGroups[g];
+    if (!Array.isArray(grp) || grp.length !== k) return null;
+    for (const x of grp) {
+      if (!Number.isInteger(x) || x < 1 || x > nCanon) return null;
+    }
+  }
+
+  for (let g = 0; g < payload.uniqueCoverage.length; g++) {
+    const row = payload.uniqueCoverage[g];
+    if (!Array.isArray(row)) return null;
+    for (const idx of row) {
+      if (!Number.isInteger(idx) || idx < 0 || idx >= numJ) return null;
+    }
+  }
+
+  if (process.env.OPTIPICK_COVERAGE_DEBUG === '1') {
+    console.error(`[optipick] coverage cache hit: ${used} (${payload.uniqueGroups.length} unique k-groups)`);
+  }
+
+  return {
+    uniqueGroups: payload.uniqueGroups,
+    uniqueCoverage: payload.uniqueCoverage,
+    numJ
+  };
+}
+
 // GRASP set cover heuristic with reactive alpha, local search, and path relinking.
 function greedySetCover(nSamples, k, j, s, atLeast = 1, timeLimitMs = 4000, scanMode = 'auto') {
   const startTime = Date.now();
@@ -326,19 +424,30 @@ function greedySetCover(nSamples, k, j, s, atLeast = 1, timeLimitMs = 4000, scan
     (timeLimitMs >= 35000 ? 2 : 1);
   const perWaveConstruct = Math.max(1, Math.floor(totalConstructMs / CONSTRUCTION_WAVES));
 
-  const allKGroupsRaw = generateCombinations(nSamples, k);
-  const allJCombinations = generateCombinations(nSamples, j);
-  const coverageIndexesRaw = buildCoverageIndexes(allKGroupsRaw, allJCombinations, j, s, atLeast);
+  const nCanon = nSamples.length;
+  const cached = tryLoadPrecachedCanonicalCoverage(nCanon, k, j, s, atLeast);
 
-  // For very large candidate spaces, full dedup-by-coverage can dominate runtime.
-  // In that case, directly use raw candidates to keep total latency bounded.
-  const DEDUP_THRESHOLD = 12000;
-  const useDedup = allKGroupsRaw.length <= DEDUP_THRESHOLD;
-  const deduped = useDedup
-    ? deduplicateByCoverage(allKGroupsRaw, coverageIndexesRaw)
-    : { uniqueGroups: allKGroupsRaw, uniqueCoverage: coverageIndexesRaw };
-  const { uniqueGroups, uniqueCoverage } = deduped;
-  const numJ = allJCombinations.length;
+  let uniqueGroups;
+  let uniqueCoverage;
+  let numJ;
+
+  if (cached) {
+    ({ uniqueGroups, uniqueCoverage, numJ } = cached);
+  } else {
+    const allKGroupsRaw = generateCombinations(nSamples, k);
+    const allJCombinations = generateCombinations(nSamples, j);
+    const coverageIndexesRaw = buildCoverageIndexes(allKGroupsRaw, allJCombinations, j, s, atLeast);
+
+    // For very large candidate spaces, full dedup-by-coverage can dominate runtime.
+    const DEDUP_THRESHOLD = 12000;
+    const useDedup = allKGroupsRaw.length <= DEDUP_THRESHOLD;
+    const deduped = useDedup
+      ? deduplicateByCoverage(allKGroupsRaw, coverageIndexesRaw)
+      : { uniqueGroups: allKGroupsRaw, uniqueCoverage: coverageIndexesRaw };
+    uniqueGroups = deduped.uniqueGroups;
+    uniqueCoverage = deduped.uniqueCoverage;
+    numJ = allJCombinations.length;
+  }
 
   const LARGE_CANDIDATE_THRESHOLD = 12000;
   const useStochasticScan = scanMode === 'stochastic' || (scanMode === 'auto' && uniqueGroups.length > LARGE_CANDIDATE_THRESHOLD);
