@@ -1031,13 +1031,16 @@
     function estimateSolveMode() {
       var n = parseInt(document.getElementById('param-n').value, 10);
       var k = parseInt(document.getElementById('param-k').value, 10);
+      var j = parseInt(document.getElementById('param-j').value, 10);
+      var s = parseInt(document.getElementById('param-s').value, 10);
       var solveMode = document.getElementById('param-solve-mode').value || 'balanced';
       var c = combinationDisplay(n, k);
       if (!c || isNaN(c)) return { mode: 'indeterminate', expectedMs: 0 };
       // Keep this aligned with backend EXACT_THRESHOLD in api/algorithm.js
       if (c > 120) {
-        var expectedByMode = { fast: 3500, balanced: 15000, quality: 60000 };
-        return { mode: 'budgeted', expectedMs: expectedByMode[solveMode] || 15000, solveMode: solveMode };
+        var expectedByMode = { fast: 15000, balanced: 45000, quality: 60000 };
+        var ms = expectedByMode[solveMode] || 45000;
+        return { mode: 'budgeted', expectedMs: ms, solveMode: solveMode };
       }
       return { mode: 'indeterminate', expectedMs: 0 };
     }
@@ -1061,9 +1064,9 @@
         var elapsedMs = Date.now() - progressStartAt;
         var elapsedSec = (elapsedMs / 1000).toFixed(1);
         if (progressMode === 'budgeted') {
-          var qualityLike = progressSolveMode === 'balanced' || progressSolveMode === 'quality';
-          var secondStageMs = qualityLike ? 15000 : 3000;
-          var thirdStageMs = qualityLike ? 45000 : 6000;
+          var e = progressExpectedMs || 15000;
+          var secondStageMs = Math.max(2500, Math.floor(e * 0.18));
+          var thirdStageMs = Math.max(secondStageMs + 4000, Math.floor(e * 0.72));
           if (elapsedMs < 1000) {
             txt.textContent = 'Preparing candidate groups... ' + elapsedSec + 's';
           } else if (elapsedMs < secondStageMs) {

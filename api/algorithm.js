@@ -321,7 +321,9 @@ function greedySetCover(nSamples, k, j, s, atLeast = 1, timeLimitMs = 4000, scan
   // repeating the O(C(n,k)·C(n,j)) precomputation.
   const totalConstructMs = Math.floor(timeLimitMs * constructShare);
   const CONSTRUCTION_WAVES =
-    timeLimitMs >= 50000 ? 3 : (timeLimitMs >= 35000 ? 2 : 1);
+    timeLimitMs >= 95000 ? 4 :
+    timeLimitMs >= 50000 ? 3 :
+    (timeLimitMs >= 35000 ? 2 : 1);
   const perWaveConstruct = Math.max(1, Math.floor(totalConstructMs / CONSTRUCTION_WAVES));
 
   const allKGroupsRaw = generateCombinations(nSamples, k);
@@ -341,7 +343,9 @@ function greedySetCover(nSamples, k, j, s, atLeast = 1, timeLimitMs = 4000, scan
   const LARGE_CANDIDATE_THRESHOLD = 12000;
   const useStochasticScan = scanMode === 'stochastic' || (scanMode === 'auto' && uniqueGroups.length > LARGE_CANDIDATE_THRESHOLD);
   const STOCHASTIC_SAMPLE_SIZE = timeLimitMs >= 10000 ? 2400 : 1400;
-  const ELITE_POOL_SIZE = timeLimitMs >= 10000 ? 10 : 6;
+  const ELITE_POOL_SIZE =
+    timeLimitMs >= 95000 ? 14 :
+    (timeLimitMs >= 10000 ? 10 : 6);
   // Alpha controls RCL breadth (0 => greedy, 1 => broad randomization).
   // Keep a spread from greedy to exploratory and let reactive choice adapt.
   const ALPHA_LEVELS = [0.1, 0.2, 0.35, 0.5, 0.7];
@@ -637,7 +641,7 @@ function greedySetCover(nSamples, k, j, s, atLeast = 1, timeLimitMs = 4000, scan
     if (!seedIndexes || seedIndexes.length <= 1) return seedIndexes ? seedIndexes.slice() : [];
     let best = pruneRedundantIndexes(seedIndexes);
     let stagnation = 0;
-    const STAGNATION_LIMIT = 12;
+    const STAGNATION_LIMIT = timeLimitMs >= 95000 ? 22 : 12;
 
     while (Date.now() < localDeadlineMs && stagnation < STAGNATION_LIMIT) {
       if (best.length <= 1) break;
@@ -968,12 +972,16 @@ function solveOptimalSamples(m, n, k, j, s, atLeast = 1, randomSamples = null, s
     result = mapCanonicalGroupsToActual(result, sortedValues);
     methodName = 'backtrack';
   } else {
-    // Implicit tier shift (names unchanged for slides/reports):
-    // fast ≈ former balanced, balanced ≈ former quality, quality ≈ former deep.
-    const graspBudgetMs =
+    // Per-mode GRASP wall time (milliseconds): fast 15s, balanced 45s, quality 60s.
+    let graspBudgetMs =
       mode === 'quality' ? 60000 :
-      mode === 'balanced' ? 15000 :
-      3500;
+      mode === 'balanced' ? 45000 :
+      15000;
+    const envMs = process.env.OSS_GRASP_MS;
+    if (envMs != null) {
+      const v = Number(envMs);
+      if (Number.isFinite(v) && v >= 3000) graspBudgetMs = Math.floor(v);
+    }
     const scanMode = mode === 'fast' ? 'auto' : 'full';
     result = greedySetCover(nSamples, k, j, s, atLeast, graspBudgetMs, scanMode);
     const allJ = generateCombinations(nSamples, j);
